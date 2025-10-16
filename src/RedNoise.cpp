@@ -227,15 +227,6 @@ void drawingATriangle(DrawingWindow &window, CanvasTriangle triangle, Colour clr
 }
 
 //v0 has the be the highest point of the three (largest y)
-
-#include <algorithm>
-#include <cmath>
-
-static float lerp(float a, float b, float t) {
-	return a + t * (b - a);
-}
-
-
 void fillingHalfTriangle(DrawingWindow &window, CanvasTriangle tri, Colour clr) {
 	uint32_t fillColour = (255 << 24) + (clr.red << 16) + (clr.green << 8) + clr.blue;
 
@@ -292,60 +283,9 @@ void drawingFilledTriangles(DrawingWindow &window, CanvasTriangle triangle, Colo
 	CanvasPoint dividerPoint  = CanvasPoint(xOfDividerPoint, v1.y);
 	CanvasTriangle tri1 = CanvasTriangle(v0, dividerPoint, v1);
 	CanvasTriangle tri2 = CanvasTriangle(v2, v1, dividerPoint);
-//
 	fillingHalfTriangle(window, tri1, clr);
 	fillingHalfTriangle(window, tri2, clr);
 
-// 	CanvasPoint leftPointFirstTriangle;
-// 	CanvasPoint rightPointFirstTriangle;
-// 	if (dividerPoint.x < v1.x) {
-// 		rightPointFirstTriangle = v1;
-// 		leftPointFirstTriangle = dividerPoint;
-// 	}
-// 	else {
-// 		rightPointFirstTriangle = dividerPoint;
-// 		leftPointFirstTriangle = v1;
-// 	}
-// // draw the right line of the first triangle
-// 	clr = Colour(255, 255, 255);
-// 	uint32_t lineColour = (255 << 24) + (clr.red << 16) + (clr.green << 8) + clr.blue;
-// 	float x2Diff = rightPointFirstTriangle.x - v0.x;
-// 	float y2Diff =  rightPointFirstTriangle.y - v0.y;
-// 	float numOfSteps2 = std::max(std::abs(x2Diff), std::abs(y2Diff));
-// 	float xStepSize2 = x2Diff/numOfSteps2;
-// 	float yStepSize2 = y2Diff/numOfSteps2;
-// 	std::vector<float> xCdOfRightLine;
-// 	for (int  i = 0; i < std::abs(numOfSteps2); i++) {
-// 		float x = v0.x + (xStepSize2 * i);
-// 		float y = v0.y + (yStepSize2 * i);
-// 		xCdOfRightLine.push_back(round(x));
-// 		//std::cout << CanvasPoint(x, y) << std::endl;
-// 		window.setPixelColour(round(x), round(y), lineColour);
-// 	}
-//
-// 	clr = Colour(0, 0, 255);
-//
-// 	lineColour = (255 << 24) + (clr.red << 16) + (clr.green << 8) + clr.blue;
-// // draw the left line of the first triangle
-// 	float xDiff = leftPointFirstTriangle.x - v0.x;
-// 	float yDiff =  leftPointFirstTriangle.y - v0.y;
-// 	float numOfSteps = std::max(std::abs(xDiff), std::abs(yDiff));
-// 	float xStepSize = xDiff/numOfSteps;
-// 	float yStepSize = yDiff/numOfSteps;
-//
-// 	for (int  i = 0; i < std::abs(numOfSteps); i++) {
-// 		float x = v0.x + (xStepSize * i);
-// 		float y = v0.y + (yStepSize * i);
-//
-// 		window.setPixelColour(round(x), round(y), lineColour);
-// 		//filling up to the right line
-// 		int j = round(x) + 1;
-// 		int xToStopAt = round(xCdOfRightLine[y - v0.y]);
-// 		while (j < xToStopAt){
-// 			window.setPixelColour(j, round(y), fillingColour);
-// 			j++;
-// 		}
-// 	}
 
 }
 
@@ -404,20 +344,81 @@ void testDrawingATriangle(DrawingWindow &window) {
 
 
 }
-void textureHalfTriangle(DrawingWindow &window, CanvasTriangle theTri, CanvasTriangle textureTri, std::vector<std::vector<float>> textureArray) {
+
+void textureHalfTriangle(DrawingWindow &window, CanvasTriangle theTri, CanvasTriangle textureTri, std::vector<std::vector<uint32_t>> textureArray) {
+	CanvasPoint origin = theTri.v0(); // bottom vertex
+	CanvasPoint left = theTri.v1();
+	CanvasPoint right = theTri.v2();
+	CanvasPoint textureOrigin = textureTri.v0(); // bottom vertex
+	CanvasPoint textureLeft = textureTri.v1();
+	CanvasPoint textureRight = textureTri.v2();
+
+	if (left.x > right.x) std::swap(left, right);
+	if (textureLeft.x > textureRight.x) std::swap(textureLeft, textureRight);
+
+	float yMiddle = right.y;
+	float yOrigin = origin.y;
+	bool isFlatTop = yMiddle <= yOrigin;
+	int yStart = std::ceil(yMiddle) ;
+	int yEnd = std::floor(yOrigin);
+	if (!isFlatTop) std::swap(yStart, yEnd);
+	std::cout << textureLeft << " < Left" <<  std::endl;
+	std::cout << textureRight << "< right "<< std::endl;
+
+	for (int y = yStart; y <= yEnd; ++y) {
+		float t, xLeft, xRight, texture_xLeft, texture_xRight, texture_yLeft, texture_yRight;
+		if (isFlatTop) //True if it is the flat top
+		{
+			t = (y - yMiddle) / (yOrigin - yMiddle);
+			xLeft  = left.x + (origin.x - left.x) * t;
+			xRight = right.x + (origin.x - right.x) * t;
 
 
+			texture_yLeft = textureLeft.y  + t * ( textureOrigin.y - textureLeft.y);
+			texture_yRight = textureRight.y + t * ( textureOrigin.y - textureRight.y);
+
+
+			texture_xLeft = textureLeft.x + (textureOrigin.x - textureLeft.x) * t;
+			texture_xRight = textureRight.x + ( textureOrigin.x - textureRight.x) * t;
+
+		}
+		else {
+			t = (y - origin.y) /(yMiddle - yOrigin);
+			xLeft  = origin.x + (left.x - origin.x) * t;
+			xRight = origin.x + (right.x - origin.x) * t;
+
+
+			texture_yLeft = textureOrigin.y + t * ( textureLeft.y - textureOrigin.y);
+			texture_yRight = textureOrigin.y + t * ( textureRight.y - textureOrigin.y);
+
+			texture_xLeft = textureOrigin.x + (textureLeft.x - textureOrigin.x) * t;
+			texture_xRight = textureOrigin.x + (textureRight.x - textureOrigin.x) * t;
+		}
+
+		int xStart = std::ceil(xLeft);
+		int xEnd = std::floor(xRight);
+
+		for (int x = xStart; x <= xEnd; ++x){
+			if (xEnd == xStart) continue; // avoid divide-by-zero
+
+			float xRatio = static_cast<float>(x - xStart) / static_cast<float>(xEnd - xStart);
+			float xPoint = texture_xLeft + (texture_xRight - texture_xLeft) * xRatio;
+			float yPoint = texture_yLeft + xRatio * (texture_yRight - texture_yLeft);
+
+			window.setPixelColour(x, y, textureArray[round(yPoint)][round(xPoint)]);
+		}
+	}
 }
 void drawTexturedTriangle(DrawingWindow &window, CanvasTriangle theTri, TextureMap &textureFile) {
 
-	std::vector<std::vector<float>> textureArray ;
+	std::vector<std::vector<uint32_t>> textureArray ;
 
 
 	//creating the 2D pixels array;
 	int height = static_cast<int>(textureFile.height);
 	int width = static_cast<int>(textureFile.width);
 	for (int y = 0; y < height; y++) {
-		std::vector<float> rowToAdd;
+		std::vector<uint32_t> rowToAdd;
 		for (int x = 0; x < width; x++) {
 
 			int index = y * width + x;
@@ -436,23 +437,29 @@ void drawTexturedTriangle(DrawingWindow &window, CanvasTriangle theTri, TextureM
 	if (v0.y > v2.y) std::swap(v0, v2);
 	if (v1.y > v2.y) std::swap(v1, v2);
 	float xOfDividerPoint = ((v1.y - v0.y) * (v2.x - v0.x)/(v2.y - v0.y) ) + v0.x;
-	float xOfTextureDividerPoint = ((v1.texturePoint.y - v0.texturePoint.y) * (v2.texturePoint.x - v0.texturePoint.x)/(v2.texturePoint.y - v0.texturePoint.y) ) + v0.texturePoint.x;
-
 	CanvasPoint dividerPoint  = CanvasPoint(xOfDividerPoint, v1.y);
-	dividerPoint.texturePoint = TexturePoint(xOfTextureDividerPoint, v1.texturePoint.y);
-	CanvasPoint dividerPointInTexture = CanvasPoint(dividerPoint.texturePoint.x, dividerPoint.texturePoint.y);
-	CanvasTriangle tri1 = CanvasTriangle(v0, dividerPoint, v1);
 
+	//float xOfTextureDividerPoint = ((v1.texturePoint.y - v0.texturePoint.y) * (v2.texturePoint.x - v0.texturePoint.x)/(v2.texturePoint.y - v0.texturePoint.y) ) + v0.texturePoint.x;
+	float textureRatio_y = (dividerPoint.y - v0.y) / (v2.y - v0.y);
+	float dividerPoint_y = v0.texturePoint.y + textureRatio_y * (v2.texturePoint.y - v0.texturePoint.y);
+
+	float textureRatio_x = (xOfDividerPoint - v0.x) / (v2.x - v0.x);
+	float dividerPoint_x = v0.texturePoint.x + textureRatio_x * (v2.texturePoint.x - v0.texturePoint.x);
+	CanvasPoint dividerPointInTexture = CanvasPoint(dividerPoint_x, dividerPoint_y);
+
+	CanvasTriangle tri1 = CanvasTriangle(v0, dividerPoint, v1);
 	CanvasTriangle tri2 = CanvasTriangle(v2, v1, dividerPoint);
 	CanvasPoint t0 = CanvasPoint(v0.texturePoint.x, v0.texturePoint.y );
 	CanvasPoint t1 = CanvasPoint(v1.texturePoint.x, v1.texturePoint.y );
 	CanvasPoint t2 = CanvasPoint(v2.texturePoint.x, v2.texturePoint.y );
-	CanvasTriangle tri1InTexture = CanvasTriangle(t0, t1, dividerPointInTexture);
-	CanvasTriangle tri2Intexture = CanvasTriangle(t2, t1, dividerPointInTexture);
+	CanvasTriangle textureTri = CanvasTriangle(t0, dividerPointInTexture, t1);
+	CanvasTriangle textureTri2= CanvasTriangle(t2, t1, dividerPointInTexture);
+	textureHalfTriangle(window, tri1, textureTri, textureArray);
+	textureHalfTriangle(window, tri2, textureTri2, textureArray);
 
 }
 void testATexturedTri(DrawingWindow &window) {
-	TextureMap textureFile = TextureMap("texture.ppm");
+	TextureMap textureFile = TextureMap("build/texture.ppm");
 	CanvasPoint p1 = CanvasPoint(160, 10);
 	CanvasPoint p2 = CanvasPoint(300, 230);
 	CanvasPoint p3 = CanvasPoint(10, 150);
@@ -492,8 +499,8 @@ int main(int argc, char *argv[]) {
 		//drawingGreyScale(window);
 		//drawing2DColourInterpolation(window);
 		//drawingTriangleRGB(window);
-		Colour white = Colour(255,255 , 255);
 		// Need to render the frame at the end, or nothing actually gets shown on the screen !
+		testATexturedTri(window);
 	//	testDrawingALine(window);
 	//	testDrawingATriangle(window);
 		window.renderFrame();
