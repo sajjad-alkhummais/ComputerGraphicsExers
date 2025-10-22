@@ -7,6 +7,8 @@
 #include <Colour.h>
 #include <thread>
 #include <TextureMap.h>
+#include <iostream>
+#include "ModelTriangle.h"
 #define WIDTH 320
 #define HEIGHT 240
 
@@ -21,13 +23,10 @@ void drawingALine(DrawingWindow &window, CanvasPoint start, CanvasPoint end, Col
 	for (int  i = 0; i < std::abs(numOfSteps); i++) {
 		float x = start.x + (xStepSize * i);
 		float y = start.y + (yStepSize * i);
-		//std::cout << CanvasPoint(x, y) << std::endl;
 		window.setPixelColour(round(x), round(y), colour);
 	}
 
 }
-
-
 
 void testDrawingALine(DrawingWindow &window) {
 
@@ -53,8 +52,7 @@ std::vector<float> interpolateSingleFloats(float from, float to, int numOfValues
 
 }
 void test_interpolateSingleFloats() {
-	std::vector<float> result;
-	result = interpolateSingleFloats(1, 1, 7);
+	std::vector<float> result = interpolateSingleFloats(1, 1, 7);
 	for(size_t i=0; i<result.size(); i++) std::cout << result[i] << " ";
 	std::cout << std::endl;
 }
@@ -104,10 +102,6 @@ std::vector<glm::vec3> interpolateThreeElementValues(glm::vec3 from, glm::vec3 t
 	return result;
 
 }
-
-
-
-
 
 
 void test_interpolateThreeElementValues() {
@@ -167,10 +161,6 @@ void drawing2DColourInterpolation(DrawingWindow &window) {
 void drawingTriangleRGB(DrawingWindow &window) {
 
 	window.clearPixels();
-
-
-
-
 
 	for (size_t y = 0; y < window.height; y++) {
 
@@ -239,9 +229,14 @@ void fillingHalfTriangle(DrawingWindow &window, CanvasTriangle tri, Colour clr) 
 	float yMiddle = right.y;
 	float yOrigin = origin.y;
 	bool isFlatTop = yMiddle <= yOrigin;
-	int yStart = std::ceil(yMiddle) ;
-	int yEnd = std::floor(yOrigin);
-	if (!isFlatTop) std::swap(yStart, yEnd);
+	// int yStart = (int)std::ceil(yMiddle);
+	// int yEnd = (int)std::floor(yOrigin);
+	//Avoiding the floating point error, or the repeating y problem.
+	float yStartTemp = yMiddle;
+	float yEndTemp = yOrigin;
+	if (!isFlatTop) std::swap(yStartTemp, yEndTemp);
+	int yStart = std::ceil(yStartTemp);
+	int yEnd = std::floor(yEndTemp);
 
 	for (int y = yStart; y <= yEnd; ++y) {
 		float t, xLeft, xRight;
@@ -282,7 +277,7 @@ void drawingFilledTriangles(DrawingWindow &window, CanvasTriangle triangle, Colo
 
 	CanvasPoint dividerPoint  = CanvasPoint(xOfDividerPoint, v1.y);
 	CanvasTriangle tri1 = CanvasTriangle(v0, dividerPoint, v1);
-	CanvasTriangle tri2 = CanvasTriangle(v2, v1, dividerPoint);
+	CanvasTriangle tri2 = CanvasTriangle(v2, dividerPoint, v1);
 	fillingHalfTriangle(window, tri1, clr);
 	fillingHalfTriangle(window, tri2, clr);
 
@@ -362,8 +357,6 @@ void textureHalfTriangle(DrawingWindow &window, CanvasTriangle theTri, CanvasTri
 	int yStart = std::ceil(yMiddle) ;
 	int yEnd = std::floor(yOrigin);
 	if (!isFlatTop) std::swap(yStart, yEnd);
-	std::cout << textureLeft << " < Left" <<  std::endl;
-	std::cout << textureRight << "< right "<< std::endl;
 
 	for (int y = yStart; y <= yEnd; ++y) {
 		float t, xLeft, xRight, texture_xLeft, texture_xRight, texture_yLeft, texture_yRight;
@@ -484,11 +477,230 @@ void handleEvent(SDL_Event event, DrawingWindow &window) {
 
 }
 
+std::vector<Colour> loadColours() {
+	std::string s;
+	std::vector<Colour> colours;
+	std::ifstream f("cornell-box.mtl");
+
+	if (!f.is_open())
+		std::cerr << "error" ;
+
+	std::string colourName;
+	while (getline(f, s)) {
+
+		if (s.empty() || s[0] == '#') continue;
+
+
+		if (s.at(0) == 'n') {
+
+			colourName = split(s, ' ')[1];
+
+		}
+		else if (s.at(0) == 'K') {
+
+			int clrValue1 = int(255 * std::stof(split(s, ' ')[1]));
+			int clrValue2 = int(255 * std::stof(split(s, ' ')[2]));
+			int clrValue3 = int(255 * std::stof(split(s, ' ')[3]));
+			Colour theClr = Colour(colourName,
+				clrValue1,
+				clrValue2,
+				clrValue3 );
+
+			colours.push_back(theClr);
+		}
+		//Dealing with colours
+
+	}
+
+
+	return colours;
+}
+std::vector<ModelTriangle> loadModel(float scaling) {
+	std::string s;
+	std::vector<ModelTriangle> triModels;
+	std::ifstream f("cornell-box.obj");
+
+	if (!f.is_open())
+		std::cerr << "error" ;
+
+	Colour colourObj;
+	std::vector<glm::vec3> vertices;
+	while (getline(f, s)) {
+
+
+		if (s.empty()) continue;
+
+
+			if (s.at(0) == 'v') {
+				std::vector<std::string> points = split(s, ' ');
+				glm::vec3 vectorN = glm::vec3(std::stof(points[1]),
+					std::stof(points[2]),
+					std::stof(points[3]));
+				vertices.push_back(vectorN);
+			}
+			else if (s.at(0) == 'f') {
+				std::vector<std::string> indexes = split(s, ' ');
+
+				auto pos1 = indexes[1].find('/');
+				auto pos2 = indexes[2].find('/');
+				auto pos3 = indexes[3].find('/');
+				indexes[1] = (indexes[1].substr(0, pos1));
+				indexes[2] = (indexes[2].substr(0, pos2));
+				indexes[3] = ( indexes[3].substr(0, pos3));
+				// the vertiecs of the specifed index is in the triangle
+
+				 ModelTriangle tri = ModelTriangle(vertices[std::stoi(indexes[1]) - 1] * scaling,
+					vertices[std::stoi(indexes[2]) - 1] * scaling,
+					vertices[std::stoi(indexes[3]) - 1] * scaling, colourObj);
+				triModels.push_back(tri);
+			}
+		//Dealing with colours
+
+			else if (s.at(0) == 'u') {
+				std::string colourName = split(s, ' ')[1];
+				std::vector<Colour> coloursPalette = loadColours();
+
+				for (Colour colour_i : coloursPalette) {
+
+					if ( colour_i.name == colourName) {
+						colourObj = colour_i;
+					}
+				}
+
+			}
+	}
+
+	return triModels;
+}
+void test_loadModel() {
+
+	std::vector<ModelTriangle> theTriModels = loadModel(1);
+
+
+	for (ModelTriangle singleTri : theTriModels) {
+		std::cout<< singleTri << std::endl;
+	}
+}
+
+
+CanvasPoint projectVertexOntoCanvasPoint(glm::vec3 cameraPosition, float focalLength, glm::vec3 vertexPosition) {
+
+	float u;
+	float v;
+	float planeScaler = 160;
+//Review x and y, they maybe incorrect, even the z
+	float x = vertexPosition.x * planeScaler;
+	float y = vertexPosition.y * planeScaler;
+	float z = cameraPosition.z - vertexPosition.z;
+	if (z < 1e-6f) z = 1e-6f;
+
+	u = focalLength * ( x / z ) + WIDTH/2;
+
+	//We need to invert the height, since the image plane has its height start from above to below, but the height of an object is considered from below.
+	//We could do this here or later when drawing.
+	v = HEIGHT - (focalLength * ( y / z ) + HEIGHT/2);
+
+
+	// std::cout<<u<<std::endl;
+	// std::cout<<v<<std::endl;
+	return CanvasPoint(u, v);
+}
+
+void renderClouds(DrawingWindow &window) {
+	glm::vec3 cameraPosition = glm::vec3(0.0, 0.0,4.0);
+	float focalLength = 2.0;
+	float scaling = 0.35;
+	std::vector<ModelTriangle> theTriModels = loadModel(scaling);
+
+	uint32_t colour = (255 << 24) + (255 << 16) + (255<< 8) + 255;
+
+
+	for (ModelTriangle singleTri : theTriModels) {
+		for (glm::vec3 vertex: singleTri.vertices) {
+			CanvasPoint projectedPoint = projectVertexOntoCanvasPoint(cameraPosition, focalLength, vertex);
+			window.setPixelColour(round(projectedPoint.x ), round(projectedPoint.y ), colour);
+
+		}
+	}
+}
+CanvasTriangle convert3DTriTo2D(ModelTriangle triangleIn3D, glm::vec3 cameraPosition, float focalLength) {
+	CanvasPoint v1, v2, v3;
+	auto vertices3D = triangleIn3D.vertices;
+	v1 = projectVertexOntoCanvasPoint(cameraPosition, focalLength, vertices3D[0]);
+	v2 = projectVertexOntoCanvasPoint(cameraPosition, focalLength, vertices3D[1]);
+	v3 = projectVertexOntoCanvasPoint(cameraPosition, focalLength, vertices3D[2]);
+	//Store the depth in the depth field of the respective Canvas Point
+	v1.depth = vertices3D[0].z;
+	v2.depth = vertices3D[1].z;
+	v3.depth = vertices3D[2].z;
+	return CanvasTriangle(v1, v2, v3);
+}
+void renderSketchedModel(DrawingWindow &window) {
+	glm::vec3 cameraPosition = glm::vec3(0.0, 0.0,4.0);
+	float focalLength = 2.0;
+	float scaling = 0.35;
+	std::vector<ModelTriangle> theTriModels = loadModel(scaling);
+
+	for (ModelTriangle triIn3D : theTriModels) {
+		CanvasTriangle triIn2D = convert3DTriTo2D(triIn3D, cameraPosition, focalLength);
+		drawingATriangle(window, triIn2D, Colour(255, 255, 255));
+	}
+
+}
+// std::vector<CanvasPoint> getPointsToUpdate(std::vector<std::vector<float>> &zBuffer, CanvasTriangle tri) {
+// 	std::vector<CanvasPoint> pointsToUpdate;
+// 	CanvasPoint v1 = tri.v0();
+// 	CanvasPoint v2 = tri.v1();
+// 	CanvasPoint v3 = tri.v2();
+//
+// 	interpolateDepthBetween2Points(v1, v2);
+// 	interpolateDepthBetween2Points(v1, v3);
+// 	interpolateDepthBetween2Points(v2, v3);
+// 	return pointsToUpdate;
+// }
+// void drawTriangleWithDepth(DrawingWindow &window,std::vector<std::vector<float>> &zBuffer, CanvasTriangle tri, Colour colour) {
+//
+// 	//You first need to know the depth of every point on surface of triangle with interpolation.
+// 	//Then you need the canvas points that had a larger depth (larger 1/z)
+// 	//Then you color these points with the color of the current input "tri"
+// 	std::vector<CanvasPoint> pointsToUpdate = getPointsToUpdate(zBuffer, tri);
+//
+// 	uint32_t colourAsInt = (255 << 24) + (int(colour.red) << 16) + (int(colour.green) << 8) + int(colour.blue);
+// 	for (CanvasPoint point : pointsToUpdate) {
+// 		window.setPixelColour(point.x, point.y, colourAsInt);
+// 	}
+//
+// }
+void renderColoredModel(DrawingWindow &window) {
+	glm::vec3 cameraPosition = glm::vec3(0.0, 0.0,4.0);
+	float focalLength = 2.0;
+	float scaling = 0.35;
+	std::vector<std::vector<float>> zBuffer;
+	for (int y = 0; y < HEIGHT; y++ ) {
+		std::vector<float> depthRow;
+		for (int x = 0; x < WIDTH; x++) {
+			depthRow.push_back(0);
+		}
+			zBuffer.push_back(depthRow);
+	}
+
+	std::vector<ModelTriangle> theTriModels = loadModel(scaling);
+
+	for (ModelTriangle triIn3D : theTriModels) {
+		CanvasTriangle triIn2D = convert3DTriTo2D(triIn3D, cameraPosition, focalLength);
+		auto color = triIn3D.colour;
+		drawingFilledTriangles(window, triIn2D, color);
+		//drawTriangleWithDepth(window,zBuffer, triIn2D, color);
+	}
+
+}
 int main(int argc, char *argv[]) {
 
 //	 test_interpolateSingleFloats();
 //	 test_interpolateThreeElementValues();
 
+
+	//test_loadModel();
 	DrawingWindow window = DrawingWindow(WIDTH, HEIGHT, false);
 
 	SDL_Event event;
@@ -500,9 +712,13 @@ int main(int argc, char *argv[]) {
 		//drawing2DColourInterpolation(window);
 		//drawingTriangleRGB(window);
 		// Need to render the frame at the end, or nothing actually gets shown on the screen !
-		testATexturedTri(window);
+		//testATexturedTri(window);
 	//	testDrawingALine(window);
 	//	testDrawingATriangle(window);
+		//renderClouds(window);
+		//renderSketchedModel(window);
+
+		renderColoredModel(window);
 		window.renderFrame();
 
 	}
