@@ -5,10 +5,13 @@
 #include <vector>
 #include <CanvasPoint.h>
 #include <Colour.h>
+#include <functional>
 #include <thread>
 #include <TextureMap.h>
 #include <iostream>
 #include "ModelTriangle.h"
+
+#include <cmath>
 #define WIDTH 320
 #define HEIGHT 240
 
@@ -463,13 +466,36 @@ void testATexturedTri(DrawingWindow &window) {
 	CanvasTriangle exampleTri = CanvasTriangle(p1, p2, p3);
 	drawTexturedTriangle(window, exampleTri, textureFile);
 }
-void handleEvent(SDL_Event event, DrawingWindow &window) {
+void rotateAroundX(glm::vec3 &cameraPosition, float degrees) {
+	float radians = degrees * M_PI / 180.0f;
+
+	glm::mat3 xRotationMatrix (
+		1, 0, 0,
+		0, std::cos(radians), std::sin(radians),
+		0, -std::sin(radians), std::cos(radians)
+		);
+    cameraPosition = (xRotationMatrix * cameraPosition);
+}
+void rotateAroundY(glm::vec3 &cameraPosition, float degrees) {
+	float radians = degrees * M_PI / 180.0f;
+
+	glm::mat3 xRotationMatrix (
+		std::cos(radians), 0, -std::sin(radians),
+		0, 1,0,
+		std::sin(radians), 0, std::cos(radians)
+		);
+	cameraPosition = (xRotationMatrix * cameraPosition);
+}
+void handleEvent(SDL_Event event, DrawingWindow &window, glm::vec3 &cameraPosition) {
+		window.clearPixels();
 	if (event.type == SDL_KEYDOWN) {
-		if (event.key.keysym.sym == SDLK_LEFT) std::cout << "LEFT" << std::endl;
-		else if (event.key.keysym.sym == SDLK_RIGHT) std::cout << "RIGHT" << std::endl;
-		else if (event.key.keysym.sym == SDLK_UP) std::cout << "UP" << std::endl; else if (event.key.keysym.sym == SDLK_DOWN) std::cout << "DOWN" << std::endl;
+		if (event.key.keysym.sym == SDLK_LEFT) cameraPosition.x -= 1; else if (event.key.keysym.sym == SDLK_RIGHT) cameraPosition.x += 1;
+		else if (event.key.keysym.sym == SDLK_UP) cameraPosition.y += 1; else if (event.key.keysym.sym == SDLK_DOWN) cameraPosition.y -= 1;
+		else if (event.key.keysym.sym == SDLK_w) cameraPosition.z += 1; else if (event.key.keysym.sym == SDLK_s) cameraPosition.z -= 1;
 		else if (event.key.keysym.sym == SDLK_u) testDrawingATriangle(window);
 		else if (event.key.keysym.sym == SDLK_f) testFillingATriangle(window);
+		else if (event.key.keysym.sym == SDLK_x) rotateAroundX(cameraPosition, 10);
+		else if (event.key.keysym.sym == SDLK_y) rotateAroundY(cameraPosition, 10);
 	} else if (event.type == SDL_MOUSEBUTTONDOWN) {
 		window.savePPM("output.ppm");
 		window.saveBMP("output.bmp");
@@ -589,9 +615,9 @@ CanvasPoint projectVertexOntoCanvasPoint(glm::vec3 cameraPosition, float focalLe
 	float v;
 	float planeScaler = 160;
 //Review x and y, they maybe incorrect, even the z
-	float x = vertexPosition.x * planeScaler;
-	float y = vertexPosition.y * planeScaler;
-	float z = cameraPosition.z - vertexPosition.z;
+	float x = (vertexPosition.x - cameraPosition.x) * planeScaler;
+	float y = ( vertexPosition.y - cameraPosition.y) * planeScaler;
+	float z = (cameraPosition.z - vertexPosition.z);
 	if (z < 1e-6f) z = 1e-6f;
 
 	u = focalLength * ( x / z ) + WIDTH/2;
@@ -601,9 +627,11 @@ CanvasPoint projectVertexOntoCanvasPoint(glm::vec3 cameraPosition, float focalLe
 	v = HEIGHT - (focalLength * ( y / z ) + HEIGHT/2);
 
 
+	CanvasPoint result = CanvasPoint(u, v);
+	result.depth = 1/z;
 	// std::cout<<u<<std::endl;
 	// std::cout<<v<<std::endl;
-	return CanvasPoint(u, v);
+	return result;
 }
 
 void renderClouds(DrawingWindow &window) {
@@ -629,10 +657,11 @@ CanvasTriangle convert3DTriTo2D(ModelTriangle triangleIn3D, glm::vec3 cameraPosi
 	v1 = projectVertexOntoCanvasPoint(cameraPosition, focalLength, vertices3D[0]);
 	v2 = projectVertexOntoCanvasPoint(cameraPosition, focalLength, vertices3D[1]);
 	v3 = projectVertexOntoCanvasPoint(cameraPosition, focalLength, vertices3D[2]);
-	//Store the depth in the depth field of the respective Canvas Point
-	v1.depth = vertices3D[0].z;
-	v2.depth = vertices3D[1].z;
-	v3.depth = vertices3D[2].z;
+
+	//Store the depth in the depth field of the respective Canvas Point (AFTER CONVERTING TO CAMERA COORDS)
+	// v1.depth = 1/(cameraPosition.z -  vertices3D[0].z );
+	// v2.depth = 1/(cameraPosition.z -  vertices3D[1].z );
+	// v3.depth = 1/(cameraPosition.z - vertices3D[2].z);
 	return CanvasTriangle(v1, v2, v3);
 }
 void renderSketchedModel(DrawingWindow &window) {
@@ -647,23 +676,139 @@ void renderSketchedModel(DrawingWindow &window) {
 	}
 
 }
-// std::vector<CanvasPoint> getPointsToUpdate(std::vector<std::vector<float>> &zBuffer, CanvasTriangle tri) {
-// 	std::vector<CanvasPoint> pointsToUpdate;
-// 	CanvasPoint v1 = tri.v0();
-// 	CanvasPoint v2 = tri.v1();
-// 	CanvasPoint v3 = tri.v2();
+// #include <cmath>
 //
-// 	interpolateDepthBetween2Points(v1, v2);
-// 	interpolateDepthBetween2Points(v1, v3);
-// 	interpolateDepthBetween2Points(v2, v3);
-// 	return pointsToUpdate;
+// float get2DDistance(float x1, float y1, float x2, float y2) {
+// 	float dx = x2 - x1;
+// 	float dy = y2 - y1;
+// 	return std::sqrt(dx * dx + dy * dy);
 // }
+
+// void fillingHalfTriangleDepth(std::vector<std::vector<float>> &zBuffer, CanvasTriangle tri) {
+// 	CanvasPoint origin = tri.v0(); // bottom vertex
+// 	CanvasPoint left = tri.v1();
+// 	CanvasPoint right = tri.v2();
+//
+// 	if (left.x > right.x) std::swap(left, right);
+//
+//
+//
+// 	float yMiddle = right.y;
+// 	float yOrigin = origin.y;
+// 	bool isFlatTop = yMiddle <= yOrigin;
+// 	// int yStart = (int)std::ceil(yMiddle);
+// 	// int yEnd = (int)std::floor(yOrigin);
+// 	//Avoiding the floating point error, or the repeating y problem.
+// 	float yStartTemp = yMiddle;
+// 	float yEndTemp = yOrigin;
+// 	if (!isFlatTop) std::swap(yStartTemp, yEndTemp);
+// 	int yStart = std::ceil(yStartTemp);
+// 	int yEnd = std::floor(yEndTemp);
+//
+// 	zBuffer[yOrigin][origin.x] = tri.v0().depth;
+// 	//what is the depth of the divider point (tricky)?
+// 	// zBuffer[yMiddle][left.x] =
+// 	for (int y = yStart; y <= yEnd; ++y) {
+// 		float t, xLeft, xRight, zLeft, zRight;
+// 		if (isFlatTop) //True if it is the flat top
+// 		{
+// 			t = (y - yMiddle) / (yOrigin - yMiddle);
+// 			xLeft  = left.x + (origin.x - left.x) * t;
+// 			xRight = right.x + (origin.x - right.x) * t;
+// 			zLeft = zBuffer[y][left.x] + (zBuffer[y][origin.x] -zBuffer[y][left.x]) * t;
+// 			zRight = zBuffer[y][right.x] + (zBuffer[y][origin.x] -zBuffer[y][right.x]) * t;
+// 		}
+// 		else {
+// 			t = (y - origin.y) /(yMiddle - yOrigin);
+// 			xLeft  = origin.x + (left.x - origin.x) * t;
+// 			xRight = origin.x + (right.x - origin.x) * t;
+// 			zLeft = zBuffer[y][origin.x] + (zBuffer[y][left.x] -zBuffer[y][origin.x]) * t;
+// 			zRight = zBuffer[y][origin.x] + (zBuffer[y][right.x] -zBuffer[y][origin.x]) * t;
+// 		}
+//
+// 		if (xLeft > xRight) std::swap(xLeft, xRight);
+//
+// 		int xStart = std::ceil(xLeft);
+// 		int xEnd = std::floor(xRight);
+// 		for (int x = xStart; x <= xEnd; ++x){
+//
+// 			//window.setPixelColour(x, y, fillColour);
+// 		float zRatio = (x - xStart) / (xEnd - xStart);
+// 			float zValue = zLeft + zRatio * (zRight - zLeft);
+// 			zBuffer[x][y] = zValue;
+// 		}
+// 	}
+// }
+
+void fillTriangleWithDepth(DrawingWindow &window, std::vector<std::vector<float>> &zBuffer, CanvasTriangle tri, Colour colour) {
+	uint32_t colourAsInt = (255 << 24) + (int(colour.red) << 16) + (int(colour.green) << 8) + int(colour.blue);
+	// std::vector<CanvasPoint> pointsToUpdate;
+	CanvasPoint v0 = tri.v0();
+	CanvasPoint v1 = tri.v1();
+	CanvasPoint v2 = tri.v2();
+
+	if (v0.y > v1.y) std::swap(v0, v1);
+	if (v0.y > v2.y) std::swap(v0, v2);
+	if (v1.y > v2.y) std::swap(v1, v2);
+
+	//float xOfDividerPoint = ((v1.y - v0.y) * (v2.x - v0.x) / (v2.y - v0.y)) + v0.x;
+
+	//float t = get2DDistance(xOfDividerPoint, v1.y, v0.x, v0.y) / get2DDistance(v2.x, v2.y, v0.x, v0.y);
+
+	//float depthOfDividerPoint = (v0.depth + t * v0.depth - v2.depth);
+	// CanvasPoint dividerPoint = CanvasPoint(xOfDividerPoint, v1.y);
+	//printf("%f, %f, %f, div: %f \n", v0.depth, v1.depth, v2.depth, dividerPoint.depth);
+
+	// zBuffer[v0.y][v0.x] = v0.depth;
+	// zBuffer[v1.y][v1.x] = v1.depth;
+	// zBuffer[v2.y][v2.x] = v2.depth;
+	// CanvasTriangle tri1 = CanvasTriangle(v0, dividerPoint, v1);
+	// CanvasTriangle tri2 = CanvasTriangle(v2, dividerPoint, v1);
+
+//	zBuffer[dividerPoint.y][dividerPoint.x] = dividerPoint.depth;
+
+//	fillingHalfTriangleDepth(zBuffer, tri1);
+//	fillingHalfTriangleDepth(zBuffer, tri2);
+
+	float cross = (v1.x - v0.x)*(v2.y - v0.y) - (v1.y - v0.y)*(v2.x - v0.x);
+	if (cross < 0) std::swap(v0, v2); // ensure consistent winding
+
+	for (int y = 0; y< HEIGHT; y++) {
+		for (int x = 0; x < WIDTH; x++) {
+			glm::vec3 prox = convertToBarycentricCoordinates(
+			glm::vec2(v0.x, v0.y),
+			glm::vec2(v1.x, v1.y),
+			glm::vec2(v2.x, v2.y),
+				glm::vec2(x, y));
+			//printf("%f, %f, %f, %f \n", prox.x, prox.y, prox.z, (prox.x + prox.y+prox.z));
+
+			if (prox.x >= 0 && prox.y >= 0 && prox.z >= 0) {
+
+				float currentDepth = prox.x * v1.depth + prox.y *v2.depth + prox.z * v0.depth;
+
+				//printf("%f\n", currentDepth);
+				if (currentDepth > zBuffer[y][x]) {
+					zBuffer[y][x]  = currentDepth;
+					window.setPixelColour(round(x), round(y), colourAsInt);
+				}
+
+			}
+		}
+	}
+
+
+	//uint32_t fillColour = (255 << 24) + (clr.red << 16) + (clr.green << 8) + clr.blue;
+
+
+//	return pointsToUpdate;
+}
+
 // void drawTriangleWithDepth(DrawingWindow &window,std::vector<std::vector<float>> &zBuffer, CanvasTriangle tri, Colour colour) {
 //
 // 	//You first need to know the depth of every point on surface of triangle with interpolation.
 // 	//Then you need the canvas points that had a larger depth (larger 1/z)
 // 	//Then you color these points with the color of the current input "tri"
-// 	std::vector<CanvasPoint> pointsToUpdate = getPointsToUpdate(zBuffer, tri);
+// 	std::vector<CanvasPoint> pointsToUpdate = getPointsToUpdate(window, zBuffer, tri);
 //
 // 	uint32_t colourAsInt = (255 << 24) + (int(colour.red) << 16) + (int(colour.green) << 8) + int(colour.blue);
 // 	for (CanvasPoint point : pointsToUpdate) {
@@ -671,10 +816,8 @@ void renderSketchedModel(DrawingWindow &window) {
 // 	}
 //
 // }
-void renderColoredModel(DrawingWindow &window) {
-	glm::vec3 cameraPosition = glm::vec3(0.0, 0.0,4.0);
-	float focalLength = 2.0;
-	float scaling = 0.35;
+void renderColoredModel(DrawingWindow &window,glm::vec3 &cameraPosition, float focalLength , float scaling) {
+
 	std::vector<std::vector<float>> zBuffer;
 	for (int y = 0; y < HEIGHT; y++ ) {
 		std::vector<float> depthRow;
@@ -688,9 +831,8 @@ void renderColoredModel(DrawingWindow &window) {
 
 	for (ModelTriangle triIn3D : theTriModels) {
 		CanvasTriangle triIn2D = convert3DTriTo2D(triIn3D, cameraPosition, focalLength);
-		auto color = triIn3D.colour;
-		drawingFilledTriangles(window, triIn2D, color);
-		//drawTriangleWithDepth(window,zBuffer, triIn2D, color);
+		//drawingFilledTriangles(window, triIn2D, color);
+		fillTriangleWithDepth(window,zBuffer, triIn2D, triIn3D.colour);
 	}
 
 }
@@ -699,14 +841,16 @@ int main(int argc, char *argv[]) {
 //	 test_interpolateSingleFloats();
 //	 test_interpolateThreeElementValues();
 
-
+	glm::vec3 cameraPosition = glm::vec3(0.0, 0.0,7.0);
+	float focalLength = 2.0;
+	float scaling = 0.35;
 	//test_loadModel();
 	DrawingWindow window = DrawingWindow(WIDTH, HEIGHT, false);
 
 	SDL_Event event;
 	while (true) {
 		// We MUST poll for events - otherwise the window will freeze !
-		if (window.pollForInputEvents(event)) handleEvent(event, window);
+		if (window.pollForInputEvents(event)) handleEvent(event, window, cameraPosition);
 		//draw(window);
 		//drawingGreyScale(window);
 		//drawing2DColourInterpolation(window);
@@ -718,7 +862,7 @@ int main(int argc, char *argv[]) {
 		//renderClouds(window);
 		//renderSketchedModel(window);
 
-		renderColoredModel(window);
+		renderColoredModel(window, cameraPosition, focalLength, scaling);
 		window.renderFrame();
 
 	}
