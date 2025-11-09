@@ -12,4 +12,5 @@ struct Colour {
 	Colour(std::string n, int r, int g, int b);
 };
 
+uint32_t convertColourToInt(Colour colourObject);
 std::ostream &operator<<(std::ostream &os, const Colour &colour);

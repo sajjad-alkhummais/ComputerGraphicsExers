@@ -35,7 +35,12 @@ add_executable(RedNoise
         libs/sdw/TextureMap.cpp
         libs/sdw/TexturePoint.cpp
         libs/sdw/Utils.cpp
-        src/RedNoise.cpp)
+        src/RedNoise.cpp
+        libs/sdw/MyFunctions/Raytracing.cpp
+        libs/sdw/MyFunctions/Raytracing.h
+        libs/sdw/MyFunctions/LoadingFiles.cpp
+        libs/sdw/MyFunctions/LoadingFiles.h
+)
 
 if (MSVC)
     target_compile_options(RedNoise
