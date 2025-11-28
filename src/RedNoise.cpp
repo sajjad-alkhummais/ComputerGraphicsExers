@@ -29,7 +29,12 @@ void drawingALine(DrawingWindow &window, CanvasPoint start, CanvasPoint end, Col
 	for (int  i = 0; i < std::abs(numOfSteps); i++) {
 		float x = start.x + (xStepSize * i);
 		float y = start.y + (yStepSize * i);
-		window.setPixelColour(round(x), round(y), colour);
+		int roundedX = round(x);
+		int roundedY = round(y);
+		// Check bounderies
+		if (roundedX >= 0 && roundedX < WIDTH && roundedY >= 0 && roundedY < HEIGHT)
+		window.setPixelColour(roundedX, roundedY, colour);
+
 	}
 
 }
@@ -614,14 +619,10 @@ CanvasTriangle convert3DTriTo2D(ModelTriangle triangleIn3D, glm::vec3 cameraPosi
 	// v3.depth = 1/(cameraPosition.z - vertices3D[2].z);
 	return CanvasTriangle(v1, v2, v3);
 }
-void renderSketchedModel(DrawingWindow &window) {
-	glm::vec3 cameraPosition = glm::vec3(0.0, 0.0,4.0);
-	float focalLength = 2.0;
-	float scaling = 0.35;
-	std::vector<ModelTriangle> theTriModels = loadModel(scaling);
-
+void renderSketchedModel(DrawingWindow &window, std::vector<ModelTriangle> &theTriModels, glm::vec3 cameraPosition, glm::mat3 cameraOrientation ,float focalLength ) {
+	window.clearPixels();
 	for (ModelTriangle triIn3D : theTriModels) {
-		CanvasTriangle triIn2D = convert3DTriTo2D(triIn3D, cameraPosition, focalLength);
+		CanvasTriangle triIn2D = convert3DTriTo2D(triIn3D, cameraPosition, cameraOrientation, focalLength);
 		drawingATriangle(window, triIn2D, Colour(255, 255, 255));
 	}
 
@@ -666,8 +667,9 @@ void fillTriangleWithDepth(DrawingWindow &window, std::vector<std::vector<float>
 		}
 	}
 }
-void renderRasterizedModel(DrawingWindow &window,glm::vec3 cameraPosition, glm::mat3 cameraOrientation ,float focalLength , float scaling) {
+void renderRasterizedModel(DrawingWindow &window, std::vector<ModelTriangle> &theTriModels, glm::vec3 cameraPosition, glm::mat3 cameraOrientation ,float focalLength ) {
 
+	window.clearPixels();
 	std::vector<std::vector<float>> zBuffer;
 	for (int y = 0; y < HEIGHT; y++ ) {
 		std::vector<float> depthRow;
@@ -677,7 +679,6 @@ void renderRasterizedModel(DrawingWindow &window,glm::vec3 cameraPosition, glm::
 			zBuffer.push_back(depthRow);
 	}
 
-	std::vector<ModelTriangle> theTriModels = loadModel(scaling);
 
 	for (ModelTriangle triIn3D : theTriModels) {
 		CanvasTriangle triIn2D = convert3DTriTo2D(triIn3D,  cameraPosition, cameraOrientation, focalLength);
@@ -725,9 +726,9 @@ void orbit(DrawingWindow &drawing_window, glm::vec3 &cameraPosition, glm::mat3 &
 void handleEvent(SDL_Event event, DrawingWindow &window, glm::vec3 &cameraPosition, glm::mat3 &cameraOrientation, bool &orbitStatus, int &renderMode) {
 	window.clearPixels();
 	if (event.type == SDL_KEYDOWN) {
-		if (event.key.keysym.sym == SDLK_LEFT) cameraPosition.x -= 1; else if (event.key.keysym.sym == SDLK_RIGHT) cameraPosition.x += 1;
-		else if (event.key.keysym.sym == SDLK_UP) cameraPosition.y += 1; else if (event.key.keysym.sym == SDLK_DOWN) cameraPosition.y -= 1;
-		else if (event.key.keysym.sym == SDLK_w) cameraPosition.z += 1; else if (event.key.keysym.sym == SDLK_s) cameraPosition.z -= 1;
+		if (event.key.keysym.sym == SDLK_LEFT) cameraPosition.x -= 0.5; else if (event.key.keysym.sym == SDLK_RIGHT) cameraPosition.x += 0.5;
+		else if (event.key.keysym.sym == SDLK_UP) cameraPosition.y += 0.5; else if (event.key.keysym.sym == SDLK_DOWN) cameraPosition.y -= 0.5;
+		else if (event.key.keysym.sym == SDLK_w) cameraPosition.z += 0.5; else if (event.key.keysym.sym == SDLK_s) cameraPosition.z -= 0.5;
 		else if (event.key.keysym.sym == SDLK_u) testDrawingATriangle(window);
 		else if (event.key.keysym.sym == SDLK_f) testFillingATriangle(window);
 		else if (event.key.keysym.sym == SDLK_x) rotateAroundX(cameraPosition, 10);
@@ -767,6 +768,8 @@ int main(int argc, char *argv[]) {
 	//test_loadModel();
 	DrawingWindow window = DrawingWindow(WIDTH, HEIGHT, false);
 
+	std::vector<ModelTriangle> theTriModels = loadModel(scaling);
+
 	//A variable to keep track of the orbiting status of the function 'orbit()';
 	bool orbitStatus;
 	SDL_Event event;
@@ -792,10 +795,11 @@ int main(int argc, char *argv[]) {
 
 		orbit(window, cameraPosition, cameraOrientation, orbitStatus);
 		//renderRaytracedModel(window, cameraPosition, cameraOrientation, focalLength, scaling);
-		if (renderMode == 1) renderSketchedModel(window);
-		else if (renderMode == 2) renderRasterizedModel(window, cameraPosition, cameraOrientation, focalLength, scaling);
+		if (renderMode == 1) renderSketchedModel(window, theTriModels, cameraPosition, cameraOrientation, focalLength);
+		else if (renderMode == 2) renderRasterizedModel(window,theTriModels, cameraPosition, cameraOrientation, focalLength );
 		else if (renderMode == 3) {
-			renderRaytracedModelWithShadows(window, cameraPosition, lightSourcePosition, focalLength, event);
+			// renderRaytracedModelWithShadows(window, theTriModels, cameraPosition, cameraOrientation, lightSourcePosition, focalLength);
+			renderRaytracedModel(window, theTriModels, cameraPosition, cameraOrientation, focalLength);
 		//	renderMode = 0;
 
 		}

@@ -15,8 +15,8 @@
 #include <glm/glm.hpp>
 
 #include "RayTriangleIntersection.h"
-RayTriangleIntersection getClosestValidIntersection();
-void testGetClosestValidIntersection();
-void renderRaytracedModel(DrawingWindow &window, glm::vec3 cameraPosition, glm::mat3 cameraOrientation ,float focalLength , float scaling);
-void renderRaytracedModelWithShadows(DrawingWindow &window, glm::vec3 cameraPosition, glm::vec3 lightSourcePosition, float focalLength, SDL_Event &event);
-bool isInShadow(glm::vec3 sourcePosition, glm::vec3 lightSourcePosition);
+RayTriangleIntersection getClosestValidIntersection(glm::vec3 cameraPosition, glm::vec3 rayDirection, std::vector<ModelTriangle> &theTriModels);
+void testGetClosestValidIntersection(std::vector<ModelTriangle> theTriModels );
+void renderRaytracedModel(DrawingWindow &window, std::vector<ModelTriangle> &theTriModels, glm::vec3 cameraPosition, glm::mat3 cameraOrientation ,float focalLength);
+void renderRaytracedModelWithShadows(DrawingWindow &window, std::vector<ModelTriangle> &theTriModels,  glm::vec3 cameraPosition, glm::mat3 cameraOrientation, glm::vec3 lightSourcePosition, float focalLength);
+bool isInShadow(std::vector<ModelTriangle> &theTriModels, glm::vec3 sourcePosition, glm::vec3 lightSourcePosition);

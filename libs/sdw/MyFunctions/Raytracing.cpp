@@ -8,15 +8,13 @@
 #include "DrawingWindow.h"
 #define WIDTH 320
 #define HEIGHT 240
-RayTriangleIntersection getClosestValidIntersection(glm::vec3 cameraPosition, glm::vec3 rayDirection) {
+RayTriangleIntersection getClosestValidIntersection(glm::vec3 cameraPosition, glm::vec3 rayDirection, std::vector<ModelTriangle> &theTriModels) {
 
-	float scaling = 0.35;
 	RayTriangleIntersection intersection;
 	float closestIntersection = INFINITY;
 
 	int triangleIndex = 0;
 	bool foundValidIntersection = false;
-	std::vector<ModelTriangle> theTriModels = loadModel(scaling);
 	for (ModelTriangle triangle : theTriModels) {
 
 		glm::vec3 e0 = triangle.vertices[1] - triangle.vertices[0];
@@ -56,33 +54,33 @@ RayTriangleIntersection getClosestValidIntersection(glm::vec3 cameraPosition, gl
 	return intersection;
 }
 
-void testGetClosestValidIntersection() {
+void testGetClosestValidIntersection(std::vector<ModelTriangle> theTriModels ) {
 	glm::vec3 rayDirection(0,0,-4.0);
 	glm::vec3 cameraPosition = glm::vec3(0.0, 0.0,4.0);
 
-	RayTriangleIntersection intersection = getClosestValidIntersection(cameraPosition, rayDirection);
+	RayTriangleIntersection intersection = getClosestValidIntersection(cameraPosition, rayDirection, theTriModels);
 	std::cout << intersection << std::endl;
 
 
 }
-void renderRaytracedModel(DrawingWindow &window,glm::vec3 cameraPosition, glm::mat3 cameraOrientation ,float focalLength , float scaling) {
-	scaling = 1.0/160;
+void renderRaytracedModel(DrawingWindow &window, std::vector<ModelTriangle> &theTriModels , glm::vec3 cameraPosition, glm::mat3 cameraOrientation ,float focalLength) {
+	window.clearPixels();
+	float imagePlaneScaling = 1.0/160;
 	float imagePlaneZValue = cameraPosition.z - focalLength; //World coords
 	for (int y = 0; y< HEIGHT; y++) {
 		for (int x = 0; x < WIDTH; x++) {
 
 
-			//printf("outside %d, %d \n", x, y);
-			//glm::vec3 pixelToTraceIn3D = glm::vec3(x, y, imagePlaneZValue);
-			float ndcX = (x - WIDTH / 2.0f) * scaling;
-			float ndcY = (y - HEIGHT / 2.0f) * scaling;
-			glm::vec3 pixelToTraceIn3D(ndcX, -ndcY, imagePlaneZValue);
+			float x3D = (x - WIDTH / 2.0f) * imagePlaneScaling;
+			float y3D = (y - HEIGHT / 2.0f) * imagePlaneScaling;
+			// float imagePlaneZValue = cameraPosition.z - focalLength; //World coords
+			glm::vec3 localRayDirection( x3D, -y3D, focalLength);
 
-
+			// pixelToTraceIn3D = pixelToTraceIn3D * cameraOrientation;
 			glm::vec3 rayDirection;
-			rayDirection = pixelToTraceIn3D - cameraPosition;
-			rayDirection = glm::normalize(rayDirection);
-			RayTriangleIntersection intersection = getClosestValidIntersection(cameraPosition, rayDirection);
+			rayDirection = cameraOrientation * localRayDirection;
+			rayDirection = glm::normalize(rayDirection) ;
+			RayTriangleIntersection intersection = getClosestValidIntersection(cameraPosition, rayDirection, theTriModels );
 
 			if (intersection.triangleIndex != -1) {
 
@@ -99,11 +97,11 @@ void renderRaytracedModel(DrawingWindow &window,glm::vec3 cameraPosition, glm::m
 
 }
 
-bool isInShadow(glm::vec3 sourcePosition, glm::vec3 lightSourcePosition) {
+bool isInShadow(std::vector<ModelTriangle> &theTriModels , glm::vec3 sourcePosition, glm::vec3 lightSourcePosition) {
 
 	glm::vec3 intersectionPointOfSurface = sourcePosition; //in 3d
 	glm::vec3 shadowRayDirection = glm::normalize(lightSourcePosition - intersectionPointOfSurface); //From surface to light source
-	RayTriangleIntersection shadowRayIntersection = getClosestValidIntersection( intersectionPointOfSurface, shadowRayDirection);
+	RayTriangleIntersection shadowRayIntersection = getClosestValidIntersection( intersectionPointOfSurface, shadowRayDirection, theTriModels);
 	float distanceFromSurfaceToIntersection = shadowRayIntersection.distanceFromCamera;
 	float distanceFromSurfaceToLightSource = glm::distance(lightSourcePosition, intersectionPointOfSurface);
 	bool inShadow = shadowRayIntersection.triangleIndex != -1
@@ -113,14 +111,14 @@ bool isInShadow(glm::vec3 sourcePosition, glm::vec3 lightSourcePosition) {
 	return inShadow;
 
 }
-void renderRaytracedModelWithShadows(DrawingWindow &window, glm::vec3 cameraPosition, glm::vec3 lightSourcePosition, float focalLength, SDL_Event &event){
+void renderRaytracedModelWithShadows(DrawingWindow &window, std::vector<ModelTriangle> &theTriModels,  glm::vec3 cameraPosition, glm::mat3 cameraOrientation, glm::vec3 lightSourcePosition, float focalLength){
 	float imagePlaneScaling = 1.0/160;
 
+	window.clearPixels();
 	for (int y = 0; y< HEIGHT; y++) {
 		for (int x = 0; x < WIDTH; x++) {
 
 
-			window.pollForInputEvents(event);
 
 			//raytracer's image plane move with the camera's X and Y position, so camera position is kind of the center
 
@@ -132,16 +130,16 @@ void renderRaytracedModelWithShadows(DrawingWindow &window, glm::vec3 cameraPosi
 			glm::vec3 rayDirection;
 			rayDirection = pixelToTraceIn3D - cameraPosition;
 			rayDirection = glm::normalize(rayDirection);
-			RayTriangleIntersection intersection = getClosestValidIntersection(cameraPosition, rayDirection);
+			RayTriangleIntersection intersection = getClosestValidIntersection(cameraPosition, rayDirection, theTriModels);
 			if (intersection.triangleIndex != -1) {
 
 				//printf("inside %d, %d \n", x, y);
 				glm::vec3 intersectionPointOfSurface = intersection.intersectionPoint; //in 3d
-				bool inShadow = !isInShadow(intersectionPointOfSurface, lightSourcePosition);
+				bool isLit = !isInShadow(theTriModels, intersectionPointOfSurface, lightSourcePosition);
 				uint32_t colour = convertColourToInt(
 				Colour(intersection.intersectedTriangle.colour));
 
-				if (inShadow)
+				if (isLit)
 				window.setPixelColour(x, y, colour);
 			}
 
