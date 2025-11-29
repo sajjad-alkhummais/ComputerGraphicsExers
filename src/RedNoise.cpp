@@ -10,6 +10,9 @@
 #include <TextureMap.h>
 #include <iostream>
 #include "ModelTriangle.h"
+#include "MyFunctions/LoadingFiles.h"
+#include "MyFunctions/Raytracing.h"
+
 
 #include <cmath>
 #define WIDTH 320
@@ -26,7 +29,12 @@ void drawingALine(DrawingWindow &window, CanvasPoint start, CanvasPoint end, Col
 	for (int  i = 0; i < std::abs(numOfSteps); i++) {
 		float x = start.x + (xStepSize * i);
 		float y = start.y + (yStepSize * i);
-		window.setPixelColour(round(x), round(y), colour);
+		int roundedX = round(x);
+		int roundedY = round(y);
+		// Check bounderies
+		if (roundedX >= 0 && roundedX < WIDTH && roundedY >= 0 && roundedY < HEIGHT)
+		window.setPixelColour(roundedX, roundedY, colour);
+
 	}
 
 }
@@ -514,131 +522,9 @@ void pan(glm::mat3 &cameraOrientation, float degrees) {
 
 	cameraOrientation = yRotationMatrix * cameraOrientation;
 }
-void handleEvent(SDL_Event event, DrawingWindow &window, glm::vec3 &cameraPosition, glm::mat3 &cameraOrientation, bool &orbitStatus) {
-		window.clearPixels();
-	if (event.type == SDL_KEYDOWN) {
-		if (event.key.keysym.sym == SDLK_LEFT) cameraPosition.x -= 1; else if (event.key.keysym.sym == SDLK_RIGHT) cameraPosition.x += 1;
-		else if (event.key.keysym.sym == SDLK_UP) cameraPosition.y += 1; else if (event.key.keysym.sym == SDLK_DOWN) cameraPosition.y -= 1;
-		else if (event.key.keysym.sym == SDLK_w) cameraPosition.z += 1; else if (event.key.keysym.sym == SDLK_s) cameraPosition.z -= 1;
-		else if (event.key.keysym.sym == SDLK_u) testDrawingATriangle(window);
-		else if (event.key.keysym.sym == SDLK_f) testFillingATriangle(window);
-		else if (event.key.keysym.sym == SDLK_x) rotateAroundX(cameraPosition, 10);
-		else if (event.key.keysym.sym == SDLK_y) rotateAroundY(cameraPosition, 10);
-		else if (event.key.keysym.sym == SDLK_j) tilt(cameraOrientation, -10); else if (event.key.keysym.sym == SDLK_k) tilt(cameraOrientation, +10);
-		else if (event.key.keysym.sym == SDLK_h) pan(cameraOrientation, -10); else if (event.key.keysym.sym == SDLK_l) pan(cameraOrientation, +10);
-		else if (event.key.keysym.sym == SDLK_o)  orbitStatus = !orbitStatus;
-
-	} else if (event.type == SDL_MOUSEBUTTONDOWN) {
-		window.savePPM("output.ppm");
-		window.saveBMP("output.bmp");
-	}
-
-}
-
-std::vector<Colour> loadColours() {
-	std::string s;
-	std::vector<Colour> colours;
-	std::ifstream f("cornell-box.mtl");
-
-	if (!f.is_open())
-		std::cerr << "error" ;
-
-	std::string colourName;
-	while (getline(f, s)) {
-
-		if (s.empty() || s[0] == '#') continue;
 
 
-		if (s.at(0) == 'n') {
 
-			colourName = split(s, ' ')[1];
-
-		}
-		else if (s.at(0) == 'K') {
-
-			int clrValue1 = int(255 * std::stof(split(s, ' ')[1]));
-			int clrValue2 = int(255 * std::stof(split(s, ' ')[2]));
-			int clrValue3 = int(255 * std::stof(split(s, ' ')[3]));
-			Colour theClr = Colour(colourName,
-				clrValue1,
-				clrValue2,
-				clrValue3 );
-
-			colours.push_back(theClr);
-		}
-		//Dealing with colours
-
-	}
-
-
-	return colours;
-}
-std::vector<ModelTriangle> loadModel(float scaling) {
-	std::string s;
-	std::vector<ModelTriangle> triModels;
-	std::ifstream f("cornell-box.obj");
-
-	if (!f.is_open())
-		std::cerr << "error" ;
-
-	Colour colourObj;
-	std::vector<glm::vec3> vertices;
-	while (getline(f, s)) {
-
-
-		if (s.empty()) continue;
-
-
-			if (s.at(0) == 'v') {
-				std::vector<std::string> points = split(s, ' ');
-				glm::vec3 vectorN = glm::vec3(std::stof(points[1]),
-					std::stof(points[2]),
-					std::stof(points[3]));
-				vertices.push_back(vectorN);
-			}
-			else if (s.at(0) == 'f') {
-				std::vector<std::string> indexes = split(s, ' ');
-
-				auto pos1 = indexes[1].find('/');
-				auto pos2 = indexes[2].find('/');
-				auto pos3 = indexes[3].find('/');
-				indexes[1] = (indexes[1].substr(0, pos1));
-				indexes[2] = (indexes[2].substr(0, pos2));
-				indexes[3] = ( indexes[3].substr(0, pos3));
-				// the vertiecs of the specifed index is in the triangle
-
-				 ModelTriangle tri = ModelTriangle(vertices[std::stoi(indexes[1]) - 1] * scaling,
-					vertices[std::stoi(indexes[2]) - 1] * scaling,
-					vertices[std::stoi(indexes[3]) - 1] * scaling, colourObj);
-				triModels.push_back(tri);
-			}
-		//Dealing with colours
-
-			else if (s.at(0) == 'u') {
-				std::string colourName = split(s, ' ')[1];
-				std::vector<Colour> coloursPalette = loadColours();
-
-				for (Colour colour_i : coloursPalette) {
-
-					if ( colour_i.name == colourName) {
-						colourObj = colour_i;
-					}
-				}
-
-			}
-	}
-
-	return triModels;
-}
-void test_loadModel() {
-
-	std::vector<ModelTriangle> theTriModels = loadModel(1);
-
-
-	for (ModelTriangle singleTri : theTriModels) {
-		std::cout<< singleTri << std::endl;
-	}
-}
 
 
 CanvasPoint projectVertexOntoCanvasPoint(glm::vec3 cameraPosition, float focalLength, glm::vec3 vertexPosition) {
@@ -717,10 +603,7 @@ CanvasTriangle convert3DTriTo2D(ModelTriangle triangleIn3D, glm::vec3 cameraPosi
 	v2 = projectVertexOntoCanvasPoint(cameraPosition, focalLength, vertices3D[1]);
 	v3 = projectVertexOntoCanvasPoint(cameraPosition, focalLength, vertices3D[2]);
 
-	//Store the depth in the depth field of the respective Canvas Point (AFTER CONVERTING TO CAMERA COORDS)
-	// v1.depth = 1/(cameraPosition.z -  vertices3D[0].z );
-	// v2.depth = 1/(cameraPosition.z -  vertices3D[1].z );
-	// v3.depth = 1/(cameraPosition.z - vertices3D[2].z);
+
 	return CanvasTriangle(v1, v2, v3);
 }
 CanvasTriangle convert3DTriTo2D(ModelTriangle triangleIn3D, glm::vec3 cameraPosition, glm::mat3 cameraOrientation, float focalLength) {
@@ -736,14 +619,10 @@ CanvasTriangle convert3DTriTo2D(ModelTriangle triangleIn3D, glm::vec3 cameraPosi
 	// v3.depth = 1/(cameraPosition.z - vertices3D[2].z);
 	return CanvasTriangle(v1, v2, v3);
 }
-void renderSketchedModel(DrawingWindow &window) {
-	glm::vec3 cameraPosition = glm::vec3(0.0, 0.0,4.0);
-	float focalLength = 2.0;
-	float scaling = 0.35;
-	std::vector<ModelTriangle> theTriModels = loadModel(scaling);
-
+void renderSketchedModel(DrawingWindow &window, std::vector<ModelTriangle> &theTriModels, glm::vec3 cameraPosition, glm::mat3 cameraOrientation ,float focalLength ) {
+	window.clearPixels();
 	for (ModelTriangle triIn3D : theTriModels) {
-		CanvasTriangle triIn2D = convert3DTriTo2D(triIn3D, cameraPosition, focalLength);
+		CanvasTriangle triIn2D = convert3DTriTo2D(triIn3D, cameraPosition, cameraOrientation, focalLength);
 		drawingATriangle(window, triIn2D, Colour(255, 255, 255));
 	}
 
@@ -788,8 +667,9 @@ void fillTriangleWithDepth(DrawingWindow &window, std::vector<std::vector<float>
 		}
 	}
 }
-void renderColoredModel(DrawingWindow &window,glm::vec3 cameraPosition, glm::mat3 cameraOrientation ,float focalLength , float scaling) {
+void renderRasterizedModel(DrawingWindow &window, std::vector<ModelTriangle> &theTriModels, glm::vec3 cameraPosition, glm::mat3 cameraOrientation ,float focalLength ) {
 
+	window.clearPixels();
 	std::vector<std::vector<float>> zBuffer;
 	for (int y = 0; y < HEIGHT; y++ ) {
 		std::vector<float> depthRow;
@@ -799,8 +679,9 @@ void renderColoredModel(DrawingWindow &window,glm::vec3 cameraPosition, glm::mat
 			zBuffer.push_back(depthRow);
 	}
 
-	std::vector<ModelTriangle> theTriModels = loadModel(scaling);
 
+
+	#pragma omp parallel for
 	for (ModelTriangle triIn3D : theTriModels) {
 		CanvasTriangle triIn2D = convert3DTriTo2D(triIn3D,  cameraPosition, cameraOrientation, focalLength);
 		//drawingFilledTriangles(window, triIn2D, color);
@@ -837,11 +718,36 @@ void orbit(DrawingWindow &drawing_window, glm::vec3 &cameraPosition, glm::mat3 &
 	// }
 	glm::vec3 center(0,0,0);
 	if (orbitStatus) {
-		rotateAroundY(cameraPosition, +20);
+		rotateAroundY(cameraPosition, +60);
 		lookAt(center, cameraOrientation, cameraPosition);
 		usleep(500000);
 	}
 
+
+}
+void handleEvent(SDL_Event event, DrawingWindow &window, glm::vec3 &cameraPosition, glm::mat3 &cameraOrientation, bool &orbitStatus, int &renderMode) {
+	window.clearPixels();
+	if (event.type == SDL_KEYDOWN) {
+		if (event.key.keysym.sym == SDLK_LEFT) cameraPosition.x -= 0.5; else if (event.key.keysym.sym == SDLK_RIGHT) cameraPosition.x += 0.5;
+		else if (event.key.keysym.sym == SDLK_UP) cameraPosition.y += 0.5; else if (event.key.keysym.sym == SDLK_DOWN) cameraPosition.y -= 0.5;
+		else if (event.key.keysym.sym == SDLK_w) cameraPosition.z += 0.5; else if (event.key.keysym.sym == SDLK_s) cameraPosition.z -= 0.5;
+		else if (event.key.keysym.sym == SDLK_u) testDrawingATriangle(window);
+		else if (event.key.keysym.sym == SDLK_f) testFillingATriangle(window);
+		else if (event.key.keysym.sym == SDLK_x) rotateAroundX(cameraPosition, 10);
+		else if (event.key.keysym.sym == SDLK_y) rotateAroundY(cameraPosition, 10);
+		else if (event.key.keysym.sym == SDLK_j) tilt(cameraOrientation, -10); else if (event.key.keysym.sym == SDLK_k) tilt(cameraOrientation, +10);
+		else if (event.key.keysym.sym == SDLK_h) pan(cameraOrientation, -10); else if (event.key.keysym.sym == SDLK_l) pan(cameraOrientation, +10);
+		else if (event.key.keysym.sym == SDLK_o)  orbitStatus = !orbitStatus;
+
+		else if (event.key.keysym.sym == SDLK_0) renderMode = 0;
+		else if (event.key.keysym.sym == SDLK_1) renderMode = 1;
+		else if (event.key.keysym.sym == SDLK_2) renderMode = 2;
+		else if (event.key.keysym.sym == SDLK_3) renderMode = 3;
+
+	} else if (event.type == SDL_MOUSEBUTTONDOWN) {
+		window.savePPM("output.ppm");
+		window.saveBMP("output.bmp");
+	}
 
 }
 int main(int argc, char *argv[]) {
@@ -849,7 +755,10 @@ int main(int argc, char *argv[]) {
 //	 test_interpolateSingleFloats();
 //	 test_interpolateThreeElementValues();
 
+	int renderMode = 0;
 	glm::vec3 cameraPosition = glm::vec3(0.0, 0.0,4.0);
+	glm::vec3 lightSourcePosition = glm::vec3(0.0, 2.5 * 0.35,0.0);
+
 	glm::mat3 cameraOrientation (
 		1, 0, 0,
 		0, 1, 0,
@@ -861,12 +770,14 @@ int main(int argc, char *argv[]) {
 	//test_loadModel();
 	DrawingWindow window = DrawingWindow(WIDTH, HEIGHT, false);
 
+	std::vector<ModelTriangle> theTriModels = loadModel(scaling);
+
 	//A variable to keep track of the orbiting status of the function 'orbit()';
 	bool orbitStatus;
 	SDL_Event event;
 	while (true) {
 		// We MUST poll for events - otherwise the window will freeze !
-		if (window.pollForInputEvents(event)) handleEvent(event, window, cameraPosition, cameraOrientation, orbitStatus);
+		if (window.pollForInputEvents(event)) handleEvent(event, window, cameraPosition, cameraOrientation, orbitStatus, renderMode);
 		//draw(window);
 		//drawingGreyScale(window);
 		//drawing2DColourInterpolation(window);
@@ -879,10 +790,23 @@ int main(int argc, char *argv[]) {
 		//renderSketchedModel(window);
 
 
-		orbit(window, cameraPosition, cameraOrientation, orbitStatus);
-		renderColoredModel(window, cameraPosition, cameraOrientation, focalLength, scaling);
+		//renderRasterizedModel(window, cameraPosition, cameraOrientation, focalLength, scaling);
 
+
+		//testGetClosestValidIntersection();
+
+		orbit(window, cameraPosition, cameraOrientation, orbitStatus);
+		//renderRaytracedModel(window, cameraPosition, cameraOrientation, focalLength, scaling);
+		if (renderMode == 1) renderSketchedModel(window, theTriModels, cameraPosition, cameraOrientation, focalLength);
+		else if (renderMode == 2) renderRasterizedModel(window,theTriModels, cameraPosition, cameraOrientation, focalLength );
+		else if (renderMode == 3) {
+			renderRaytracedModelWithShadows(window, theTriModels, cameraPosition, cameraOrientation, lightSourcePosition, focalLength);
+			// renderRaytracedModel(window, theTriModels, cameraPosition, cameraOrientation, focalLength);
+		//	renderMode = 0;
+
+		}
 		window.renderFrame();
+
 
 	}
 }

@@ -1,3 +1,0 @@
-/home/sajjad/year3/cg/RedNoise/build/CMakeFiles/RedNoise.dir
-/home/sajjad/year3/cg/RedNoise/build/CMakeFiles/edit_cache.dir
-/home/sajjad/year3/cg/RedNoise/build/CMakeFiles/rebuild_cache.dir
