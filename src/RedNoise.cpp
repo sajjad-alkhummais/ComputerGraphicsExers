@@ -680,6 +680,8 @@ void renderRasterizedModel(DrawingWindow &window, std::vector<ModelTriangle> &th
 	}
 
 
+
+	#pragma omp parallel for
 	for (ModelTriangle triIn3D : theTriModels) {
 		CanvasTriangle triIn2D = convert3DTriTo2D(triIn3D,  cameraPosition, cameraOrientation, focalLength);
 		//drawingFilledTriangles(window, triIn2D, color);
@@ -798,8 +800,8 @@ int main(int argc, char *argv[]) {
 		if (renderMode == 1) renderSketchedModel(window, theTriModels, cameraPosition, cameraOrientation, focalLength);
 		else if (renderMode == 2) renderRasterizedModel(window,theTriModels, cameraPosition, cameraOrientation, focalLength );
 		else if (renderMode == 3) {
-			// renderRaytracedModelWithShadows(window, theTriModels, cameraPosition, cameraOrientation, lightSourcePosition, focalLength);
-			renderRaytracedModel(window, theTriModels, cameraPosition, cameraOrientation, focalLength);
+			renderRaytracedModelWithShadows(window, theTriModels, cameraPosition, cameraOrientation, lightSourcePosition, focalLength);
+			// renderRaytracedModel(window, theTriModels, cameraPosition, cameraOrientation, focalLength);
 		//	renderMode = 0;
 
 		}

@@ -30,10 +30,10 @@ GLM_COMPILER_FLAGS := -I$(GLM_DIR)
 MYFUNCTIONS_COMPILER_FLAGS := -I$(MYFUNCTIONS_DIR)
 # If you have a manual install of SDL, you might not have sdl2-config installed, so the following line might not work
 # Compiler flags should look something like: -I/usr/local/include/SDL2 -D_THREAD_SAFE
-SDL_COMPILER_FLAGS := $(shell sdl2-config --cflags)
+SDL_COMPILER_FLAGS := $(shell sdl2-config --cflags) -fopenmp
 # If you have a manual install of SDL, you might not have sdl2-config installed, so the following line might not work
 # Linker flags should look something like: -L/usr/local/lib -lSDL2
-SDL_LINKER_FLAGS := $(shell sdl2-config --libs)
+SDL_LINKER_FLAGS := $(shell sdl2-config --libs) -fopenmp
 SDW_LINKER_FLAGS := $(SDW_OBJECT_FILES)
 
 default: debug

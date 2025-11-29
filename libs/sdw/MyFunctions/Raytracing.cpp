@@ -66,7 +66,6 @@ void testGetClosestValidIntersection(std::vector<ModelTriangle> theTriModels ) {
 void renderRaytracedModel(DrawingWindow &window, std::vector<ModelTriangle> &theTriModels , glm::vec3 cameraPosition, glm::mat3 cameraOrientation ,float focalLength) {
 	window.clearPixels();
 	float imagePlaneScaling = 1.0/160;
-	float imagePlaneZValue = cameraPosition.z - focalLength; //World coords
 	for (int y = 0; y< HEIGHT; y++) {
 		for (int x = 0; x < WIDTH; x++) {
 
@@ -115,6 +114,8 @@ void renderRaytracedModelWithShadows(DrawingWindow &window, std::vector<ModelTri
 	float imagePlaneScaling = 1.0/160;
 
 	window.clearPixels();
+	#pragma omp parallel for
+
 	for (int y = 0; y< HEIGHT; y++) {
 		for (int x = 0; x < WIDTH; x++) {
 
@@ -122,13 +123,12 @@ void renderRaytracedModelWithShadows(DrawingWindow &window, std::vector<ModelTri
 
 			//raytracer's image plane move with the camera's X and Y position, so camera position is kind of the center
 
-			float x3D = (x - WIDTH / 2.0f) * imagePlaneScaling + cameraPosition.x;
-			float y3D = cameraPosition.y -  (y - HEIGHT / 2.0f) * imagePlaneScaling;
-			float imagePlaneZValue = cameraPosition.z - focalLength; //World coords
-			glm::vec3 pixelToTraceIn3D( x3D, y3D, imagePlaneZValue);
+			float x3D = (x - WIDTH / 2.0f) * imagePlaneScaling ;
+			float y3D = (y - HEIGHT / 2.0f) * imagePlaneScaling;
+			glm::vec3 localRayDirection( x3D, -y3D, focalLength);
 
 			glm::vec3 rayDirection;
-			rayDirection = pixelToTraceIn3D - cameraPosition;
+			rayDirection = cameraOrientation * localRayDirection ;
 			rayDirection = glm::normalize(rayDirection);
 			RayTriangleIntersection intersection = getClosestValidIntersection(cameraPosition, rayDirection, theTriModels);
 			if (intersection.triangleIndex != -1) {
