@@ -726,7 +726,6 @@ void orbit(DrawingWindow &drawing_window, glm::vec3 &cameraPosition, glm::mat3 &
 
 }
 void handleEvent(SDL_Event event, DrawingWindow &window, glm::vec3 &cameraPosition, glm::mat3 &cameraOrientation, bool &orbitStatus, int &renderMode) {
-	window.clearPixels();
 	if (event.type == SDL_KEYDOWN) {
 		if (event.key.keysym.sym == SDLK_LEFT) cameraPosition.x -= 0.5; else if (event.key.keysym.sym == SDLK_RIGHT) cameraPosition.x += 0.5;
 		else if (event.key.keysym.sym == SDLK_UP) cameraPosition.y += 0.5; else if (event.key.keysym.sym == SDLK_DOWN) cameraPosition.y -= 0.5;
@@ -746,9 +745,88 @@ void handleEvent(SDL_Event event, DrawingWindow &window, glm::vec3 &cameraPositi
 
 	} else if (event.type == SDL_MOUSEBUTTONDOWN) {
 		window.savePPM("output.ppm");
+
+		int frameNumber = 0;
+		std::string filename = "frame_" + std::to_string(frameNumber) + ".bmp";
+		window.saveBMP(filename);
 		window.saveBMP("output.bmp");
 	}
 
+	window.clearPixels();
+}
+
+#include <iomanip> // Required for std::setw and setfill
+#include <sstream>
+void generateAnimation(DrawingWindow &window, std::vector<ModelTriangle> &theTriModels,
+                       glm::vec3 &cameraPosition, glm::mat3 &cameraOrientation,
+                       glm::vec3 &lightSourcePosition, float &focalLength) {
+
+    int totalFrames = 720; // 30 seconds * 24 fps
+    int renderMode = 1;    // Start in Sketch mode
+
+    std::cout << "Starting render of " << totalFrames << " frames..." << std::endl;
+
+    for (int i = 0; i < totalFrames; i++) {
+
+        // --- ANIMATION LOGIC ---
+
+        // PHASE 1: 0 to 5 seconds (Wireframe Zoom Out)
+        if (i < 120) {
+            renderMode = 1;
+            // Move camera back slowly (Simulating 'S' key)
+            cameraPosition.z += 0.02f;
+        }
+        // PHASE 2: 5 to 15 seconds (Rasterized Orbit)
+        else if (i < 360) {
+            renderMode = 2;
+            // Orbit camera (Simulating 'Y' key but smoother)
+            // Assuming your rotate function takes degrees, we use small steps for smooth video
+            rotateAroundY(cameraPosition, 0.5f);
+
+            // Also lift the camera up slightly
+            cameraPosition.y += 0.01f;
+
+            // Look down slightly to keep object in center (Simulating 'J' tilt)
+            tilt(cameraOrientation, -0.1f);
+        }
+        // PHASE 3: 15 to 30 seconds (Raytraced Cinematic Pan)
+        else {
+            renderMode = 3;
+            // Very slow, high-quality movement
+            // Pan camera slowly to the right (Simulating 'L' key)
+            pan(cameraOrientation, 0.1f);
+
+            // Optional: Move light source to create shifting shadows
+            lightSourcePosition.x += 0.05f;
+        }
+
+        // --- RENDER STEP ---
+
+        window.clearPixels(); // Clear buffer before drawing
+
+        if (renderMode == 1) {
+            renderSketchedModel(window, theTriModels, cameraPosition, cameraOrientation, focalLength);
+        }
+        else if (renderMode == 2) {
+            renderRasterizedModel(window, theTriModels, cameraPosition, cameraOrientation, focalLength);
+        }
+        else if (renderMode == 3) {
+            renderRaytracedModelWithShadows(window, theTriModels, cameraPosition, cameraOrientation, lightSourcePosition, focalLength);
+        }
+
+        // --- SAVE FRAME ---
+
+        // Create filename like "output_0001.bmp", "output_0002.bmp"
+        std::stringstream ss;
+        ss << "output_" << std::setw(4) << std::setfill('0') << i << ".bmp";
+
+        window.saveBMP(ss.str());
+
+        // Progress update to console
+        std::cout << "Rendered frame " << i << "/" << totalFrames << " (Mode: " << renderMode << ")" << std::endl;
+    }
+
+    std::cout << "Animation Render Complete!" << std::endl;
 }
 int main(int argc, char *argv[]) {
 
@@ -774,7 +852,9 @@ int main(int argc, char *argv[]) {
 
 	//A variable to keep track of the orbiting status of the function 'orbit()';
 	bool orbitStatus;
+	// generateAnimation(window, theTriModels, cameraPosition, cameraOrientation, lightSourcePosition, focalLength);
 	SDL_Event event;
+
 	while (true) {
 		// We MUST poll for events - otherwise the window will freeze !
 		if (window.pollForInputEvents(event)) handleEvent(event, window, cameraPosition, cameraOrientation, orbitStatus, renderMode);

@@ -16,7 +16,7 @@ MYFUNCTIONS_OBJECT_FILES := $(patsubst $(MYFUNCTIONS_DIR)%.cpp, $(BUILD_DIR)/%.o
 
 
 # Build settings
-COMPILER := clang++
+COMPILER := g++
 COMPILER_OPTIONS := -c -pipe -Wall -std=c++11 # If you have an older compiler, you might have to use -std=c++0x
 DEBUG_OPTIONS := -ggdb -g3
 FUSSY_OPTIONS := -Werror -pedantic
