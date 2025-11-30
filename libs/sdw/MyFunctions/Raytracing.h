@@ -6,6 +6,9 @@
 #define REDNOISE_RAYTRACING_H
 #include "CanvasPoint.h"
 #include <glm/glm.hpp>
+#include "DrawingWindow.h"
+#include "Texturing.h"
+#include "LightingEffects.h"
 
 #include "DrawingWindow.h"
 #endif //REDNOISE_RAYTRACING_H

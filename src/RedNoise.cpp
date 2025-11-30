@@ -209,7 +209,7 @@ int main(int argc, char *argv[]) {
 
 	int renderMode = 0;
 	glm::vec3 cameraPosition = glm::vec3(0.0, 0.0,4.0);
-	glm::vec3 lightSourcePosition = glm::vec3(0.0, 2.5 * 0.35,0.0);
+	glm::vec3 lightSourcePosition = glm::vec3(0.0, 2 * 0.35, 0.5);
 
 	glm::mat3 cameraOrientation (
 		1, 0, 0,
@@ -224,6 +224,7 @@ int main(int argc, char *argv[]) {
 
 	//Load models and textures
 	std::vector<ModelTriangle> theTriModels = loadModel(scaling, "cornell-box.obj", "cornell-box.mtl");
+	// std::vector<ModelTriangle> theTriOfSphere = loadModel(scaling, "sphere.obj", "cornell-box.bobj");
 	// std::vector<ModelTriangle> theTriModels = loadModel(scaling, "textured-cornell-box.obj", "textured-cornell-box.mtl");
 	TextureMap textureFile = TextureMap("ModelsFiles/texture.ppm");
 	std::vector<std::vector<uint32_t>> textureArray = createTextureArray(textureFile);
