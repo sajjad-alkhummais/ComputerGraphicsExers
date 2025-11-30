@@ -271,11 +271,17 @@ void orbit(DrawingWindow &drawing_window, glm::vec3 &cameraPosition, glm::mat3 &
 
 
 }
-void handleEvent(SDL_Event event, DrawingWindow &window, glm::vec3 &cameraPosition, glm::mat3 &cameraOrientation, bool &orbitStatus, int &renderMode) {
+void handleEvent(SDL_Event event, DrawingWindow &window, glm::vec3 &cameraPosition, glm::mat3 &cameraOrientation, bool &orbitStatus, int &renderMode, glm::vec3 &lightSourcePosition) {
+
 	if (event.type == SDL_KEYDOWN) {
 		if (event.key.keysym.sym == SDLK_LEFT) cameraPosition.x -= 0.5; else if (event.key.keysym.sym == SDLK_RIGHT) cameraPosition.x += 0.5;
 		else if (event.key.keysym.sym == SDLK_UP) cameraPosition.y += 0.5; else if (event.key.keysym.sym == SDLK_DOWN) cameraPosition.y -= 0.5;
 		else if (event.key.keysym.sym == SDLK_w) cameraPosition.z += 0.5; else if (event.key.keysym.sym == SDLK_s) cameraPosition.z -= 0.5;
+
+		if (event.key.keysym.sym == SDLK_5) lightSourcePosition.x -= 0.5; else if (event.key.keysym.sym == SDLK_6) lightSourcePosition.x += 0.5;
+		else if (event.key.keysym.sym == SDLK_7) lightSourcePosition.y += 0.5; else if (event.key.keysym.sym == SDLK_8) lightSourcePosition.y -= 0.5;
+		else if (event.key.keysym.sym == SDLK_0) lightSourcePosition.z += 0.5; else if (event.key.keysym.sym == SDLK_9) lightSourcePosition.z -= 0.5;
+
 		else if (event.key.keysym.sym == SDLK_u) testDrawingATriangle(window);
 		else if (event.key.keysym.sym == SDLK_f) testFillingATriangle(window);
 		else if (event.key.keysym.sym == SDLK_x) rotateAroundX(cameraPosition, 10);
@@ -395,8 +401,8 @@ int main(int argc, char *argv[]) {
 	DrawingWindow window = DrawingWindow(WIDTH, HEIGHT, false);
 
 	//Load models and textures
-	// std::vector<ModelTriangle> theTriModels = loadModel(scaling, "cornell-box.obj", "cornell-box.mtl");
-	std::vector<ModelTriangle> theTriModels = loadModel(scaling, "textured-cornell-box.obj", "textured-cornell-box.mtl");
+	std::vector<ModelTriangle> theTriModels = loadModel(scaling, "cornell-box.obj", "cornell-box.mtl");
+	// std::vector<ModelTriangle> theTriModels = loadModel(scaling, "textured-cornell-box.obj", "textured-cornell-box.mtl");
 	TextureMap textureFile = TextureMap("ModelsFiles/texture.ppm");
 	std::vector<std::vector<uint32_t>> textureArray = createTextureArray(textureFile);
 
@@ -408,7 +414,7 @@ int main(int argc, char *argv[]) {
 
 	while (true) {
 		// We MUST poll for events - otherwise the window will freeze !
-		if (window.pollForInputEvents(event)) handleEvent(event, window, cameraPosition, cameraOrientation, orbitStatus, renderMode);
+		if (window.pollForInputEvents(event)) handleEvent(event, window, cameraPosition, cameraOrientation, orbitStatus, renderMode, lightSourcePosition);
 		//draw(window);
 		//drawingGreyScale(window);
 		//drawing2DColourInterpolation(window);

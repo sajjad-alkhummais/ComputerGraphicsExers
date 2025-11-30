@@ -119,6 +119,24 @@ bool isInShadow(std::vector<ModelTriangle> &theTriModels,  std::vector<std::vect
 	return inShadow;
 
 }
+
+uint32_t colourWithProximityLighting(float intensity, float distanceFromLight, Colour unLitColour) {
+
+	float brightness = intensity * 1.0f / (4.0f * M_PI * std::pow(distanceFromLight, 2) );
+	// float brightness = intensity /distanceFromLight;
+
+	brightness = std::min(brightness, 1.0f);
+
+	// printf("brightness: %f\n", distanceFromLight * distanceFromLight);
+	float litRed = float(unLitColour.red) * brightness;
+	float litBlue =  float(unLitColour.blue )* brightness;
+	float litGreen =  float(unLitColour.green )* brightness;
+
+	uint32_t colour = (255 << 24) + ((int)litRed << 16) + ((int) litGreen << 8) + (int)litBlue;
+
+	return colour;
+}
+
 void renderRaytracedModelWithShadows(DrawingWindow &window, std::vector<ModelTriangle> &theTriModels, std::vector<std::vector<uint32_t>> &textureArray, glm::vec3 cameraPosition, glm::mat3 cameraOrientation, glm::vec3 lightSourcePosition, float focalLength){
 	float imagePlaneScaling = 1.0/160;
 
@@ -145,16 +163,17 @@ void renderRaytracedModelWithShadows(DrawingWindow &window, std::vector<ModelTri
 				//printf("inside %d, %d \n", x, y);
 				glm::vec3 intersectionPointOfSurface = intersection.intersectionPoint; //in 3d
 				bool isLit = !isInShadow(theTriModels,textureArray, intersectionPointOfSurface, lightSourcePosition);
-				uint32_t colour = convertColourToInt(
-				Colour(intersection.intersectedTriangle.colour));
+				Colour colour = intersection.intersectedTriangle.colour;
+				u_int32_t finalColour = 0;
 
 				if (isLit) {
-
-
+					//Check texturing:
 					if (intersection.intersectedTriangle.hasTexture)
-						colour = intersection.textureColourAsInt;
+						finalColour = intersection.textureColourAsInt;
 
-					window.setPixelColour(x, y, colour);
+					finalColour = colourWithProximityLighting(10, glm::length(lightSourcePosition - intersectionPointOfSurface), colour);
+
+					window.setPixelColour(x, y, finalColour);
 				}
 			}
 
