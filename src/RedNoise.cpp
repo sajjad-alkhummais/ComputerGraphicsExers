@@ -395,6 +395,7 @@ int main(int argc, char *argv[]) {
 	DrawingWindow window = DrawingWindow(WIDTH, HEIGHT, false);
 
 	//Load models and textures
+	// std::vector<ModelTriangle> theTriModels = loadModel(scaling, "cornell-box.obj", "cornell-box.mtl");
 	std::vector<ModelTriangle> theTriModels = loadModel(scaling, "textured-cornell-box.obj", "textured-cornell-box.mtl");
 	TextureMap textureFile = TextureMap("ModelsFiles/texture.ppm");
 	std::vector<std::vector<uint32_t>> textureArray = createTextureArray(textureFile);

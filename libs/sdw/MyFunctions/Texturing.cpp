@@ -132,3 +132,20 @@ void testATexturedTri(DrawingWindow &window) {
 	CanvasTriangle exampleTri = CanvasTriangle(p1, p2, p3);
 	drawTexturedTriangle(window, exampleTri, textureFile);
 }
+
+uint32_t getTextureColourOfIntersection(std::vector<std::vector<uint32_t>> &textureArray, ModelTriangle intersectedTriangle, float u, float v){
+float w = 1.0f - u - v;
+
+	glm::vec2 topPoint = glm::vec2(intersectedTriangle.texturePoints[1].x, intersectedTriangle.texturePoints[1].y);
+	glm::vec2 leftPoint = glm::vec2(intersectedTriangle.texturePoints[0].x, intersectedTriangle.texturePoints[0].y);
+	glm::vec2 rightPoint = glm::vec2(intersectedTriangle.texturePoints[2].x, intersectedTriangle.texturePoints[2].y);
+	glm::vec2 leftEdge = topPoint - leftPoint;
+	glm::vec2 bottomEdge = rightPoint - leftPoint;
+	glm::vec2 targetPointVector = leftEdge * u + bottomEdge * v;
+	targetPointVector = leftPoint * u + topPoint * v + rightPoint * w;
+	int target_x = round(targetPointVector.x);
+	int target_y = round(targetPointVector.y);
+
+	return textureArray[target_y][target_x];
+
+}

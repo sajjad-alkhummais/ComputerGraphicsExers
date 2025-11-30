@@ -6,6 +6,7 @@
 #include "Raytracing.h"
 
 #include "DrawingWindow.h"
+#include "Texturing.h"
 #define WIDTH 320
 #define HEIGHT 240
 RayTriangleIntersection getClosestValidIntersection(glm::vec3 cameraPosition, glm::vec3 rayDirection, std::vector<ModelTriangle> &theTriModels, std::vector<std::vector<uint32_t>> &textureArray) {
@@ -44,23 +45,10 @@ RayTriangleIntersection getClosestValidIntersection(glm::vec3 cameraPosition, gl
 
 
 				//Check if the intersection is with a textured triangle
-				bool isTextured = !triangle.texturePoints.empty();
 				if (intersection.intersectedTriangle.hasTexture){
 
-					float targetVertexX = triangle.texturePoints[0].x + u * (triangle.texturePoints[1].x - triangle.texturePoints[0].x);
-					float targetVertexY = triangle.texturePoints[0].y + v * (triangle.texturePoints[1].x - triangle.texturePoints[0].x);
-					float w = 1.0f - u - v;
+					intersection.textureColourAsInt = getTextureColourOfIntersection(textureArray, triangle, u, v);
 
-					glm::vec2 topPoint = glm::vec2(triangle.texturePoints[1].x, triangle.texturePoints[1].y);
-					glm::vec2 leftPoint = glm::vec2(triangle.texturePoints[0].x, triangle.texturePoints[0].y);
-					glm::vec2 rightPoint = glm::vec2(triangle.texturePoints[2].x, triangle.texturePoints[2].y);
-					glm::vec2 leftEdge = topPoint - leftPoint;
-					glm::vec2 bottomEdge = rightPoint - leftPoint;
-					glm::vec2 targetPointVector = leftEdge * u + bottomEdge * v;
-					targetPointVector = leftPoint * u + topPoint * v + rightPoint * w;
-					int px = round(targetPointVector.x);
-					int py = round(targetPointVector.y);
-					intersection.textureColourAsInt = textureArray[py][px];
 				}
 			//	intersection.intersectionPoint = triangle.vertices[0] + possibleSolution.y * (triangle.vertices[1]  - triangle.vertices[0]) // This is relative to world origin
 			//	+ possibleSolution.z * (triangle.vertices[2]  - triangle.vertices[0]);
