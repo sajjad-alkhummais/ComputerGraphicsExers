@@ -14,7 +14,8 @@
 #include "ModelTriangle.h"
 #include "Utils.h"
 
-std::vector<Colour> loadColours();
+std::vector<Colour> loadColours(std::string nameOfFile);
 
-std::vector<ModelTriangle> loadModel(float scaling);
-void test_loadModel();
+std::vector<ModelTriangle> loadModel(float scaling, std::string nameOfObjectFile, std::string nameOfMaterialFile);
+void test_loadUntexturedModel();
+void test_loadTexturedModel();

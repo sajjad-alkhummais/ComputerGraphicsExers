@@ -40,6 +40,10 @@ add_executable(RedNoise
         libs/sdw/MyFunctions/Raytracing.h
         libs/sdw/MyFunctions/LoadingFiles.cpp
         libs/sdw/MyFunctions/LoadingFiles.h
+        libs/sdw/MyFunctions/Texturing.h
+        libs/sdw/MyFunctions/Texturing.cpp
+        libs/sdw/MyFunctions/Wireframe.h
+        libs/sdw/MyFunctions/Wireframe.cpp
 )
 
 if (MSVC)
