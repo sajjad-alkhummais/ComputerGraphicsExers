@@ -10,12 +10,13 @@
 #define HEIGHT 240
 
 #include "CanvasPoint.h"
+#include "MyFunctions/Projection.h"
 #include "Colour.h"
 #include "DrawingWindow.h"
-#include <glm/glm.hpp>
-
+#include "ModelTriangle.h"
 #include "CanvasTriangle.h"
 #include "Utils.h"
+#include "glm/glm.hpp"
 void drawingALine(DrawingWindow &window, CanvasPoint start, CanvasPoint end, Colour clr);
 void testDrawingALine(DrawingWindow &window);
 std::vector<float> interpolateSingleFloats(float from, float to, int numOfValues);
@@ -37,3 +38,5 @@ void drawingFilledTriangles(DrawingWindow &window, CanvasTriangle triangle, Colo
 
 void testFillingATriangle(DrawingWindow &window);
 void testDrawingATriangle(DrawingWindow &window);
+
+void renderSketchedModel(DrawingWindow &window, std::vector<ModelTriangle> &theTriModels, glm::vec3 cameraPosition, glm::mat3 cameraOrientation ,float focalLength );

@@ -14,165 +14,22 @@
 #include "MyFunctions/Raytracing.h"
 #include "MyFunctions/Wireframe.h"
 #include "MyFunctions/Texturing.h"
+#include "MyFunctions/CameraMovements.h"
+#include "MyFunctions/Projection.h"
+
 
 #include <cmath>
 #define WIDTH 320
 #define HEIGHT 240
 
 
-void rotateAroundX(glm::vec3 &cameraPosition, float degrees) {
-	float radians = degrees * M_PI / 180.0f;
-
-	glm::mat3 xRotationMatrix (
-		1, 0, 0,
-		0, std::cos(radians), std::sin(radians),
-		0, -std::sin(radians), std::cos(radians)
-		);
-    cameraPosition = (xRotationMatrix * cameraPosition);
-}
-void rotateAroundY(glm::vec3 &cameraPosition, float degrees) {
-	float radians = degrees * M_PI / 180.0f;
-
-	glm::mat3 yRotationMatrix (
-		std::cos(radians), 0, -std::sin(radians),
-		0, 1,0,
-		std::sin(radians), 0, std::cos(radians)
-		);
-	cameraPosition = (yRotationMatrix * cameraPosition);
-}
-
-void tilt(glm::mat3 &cameraOrientation, float degrees) {
-	float radians = degrees * M_PI / 180.0f;
-
-	glm::mat3 xRotationMatrix (
-		1, 0, 0,
-		0, std::cos(radians), std::sin(radians),
-		0, -std::sin(radians), std::cos(radians)
-		);
-
-
-
-	cameraOrientation = xRotationMatrix * cameraOrientation;
-}
-
-void pan(glm::mat3 &cameraOrientation, float degrees) {
-	float radians = degrees * M_PI / 180.0f;
-
-	glm::mat3 yRotationMatrix (
-		std::cos(radians), 0, -std::sin(radians),
-		0, 1,0,
-		std::sin(radians), 0, std::cos(radians)
-		);
-
-
-
-	cameraOrientation = yRotationMatrix * cameraOrientation;
-}
 
 
 
 
 
-CanvasPoint projectVertexOntoCanvasPoint(glm::vec3 cameraPosition, float focalLength, glm::vec3 vertexPosition) {
-
-	float u;
-	float v;
-	float planeScaler = 160;
-	//Review x and y, they maybe incorrect, even the z
-	// float x = (vertexPosition.x - cameraPosition.x);
-	// float y = ( vertexPosition.y - cameraPosition.y);
-	// float z = (cameraPosition.z - vertexPosition.z);
-	// if (z < 1e-6f) z = 1e-6f;
-	glm::vec3 cameraToVertex = vertexPosition - cameraPosition;
-	cameraToVertex.z = -cameraToVertex.z; //I have no idea why this is needed for this version of this function
-
-	u = focalLength * ( cameraToVertex.x * planeScaler / cameraToVertex.z ) + WIDTH/2;
-
-	//We need to invert the height, since the image plane has its height start from above to below, but the height of an object is considered from below.
-	//We could do this here or later when drawing.
-	v = HEIGHT - (focalLength * ( cameraToVertex.y  * planeScaler / cameraToVertex.z) + HEIGHT/2);
 
 
-
-	return CanvasPoint(u, v, 1.0f/cameraToVertex.z);
-}
-CanvasPoint projectVertexOntoCanvasPoint(glm::vec3 cameraPosition, glm::mat3 cameraOrientation ,float focalLength, glm::vec3 vertexPosition) {
-	float u;
-	float v;
-	float planeScaler = 160;
-	//Review x and y, they maybe incorrect, even the z
-	glm::vec3 cameraToVertex(0,0,0);
-	// cameraToVertex.x = (vertexPosition.x - cameraPosition.x);
-	// cameraToVertex.y = ( vertexPosition.y - cameraPosition.y) ;
-	// cameraToVertex.z = (cameraPosition.z - vertexPosition.z);
-
-
-	cameraToVertex = vertexPosition - cameraPosition;
-	//cameraToVertex.x = -cameraToVertex.x;
-	glm::vec3 adjustedVector = (cameraToVertex * cameraOrientation);
-
-	//adjustedVector = cameraToVertex;
-	//adjustedVector = cameraToVertex;
-//	adjustedVector = cameraToVertex;
-	u = focalLength * ( planeScaler * adjustedVector.x / adjustedVector.z ) + WIDTH/2;
-
-
-	//We need to invert the height, since the image plane has its height start from above to below, but the height of an object is considered from below.
-	//We could do this here or later when drawing.
-	v = HEIGHT - (focalLength * ( planeScaler * adjustedVector.y / adjustedVector.z ) + HEIGHT/2);
-
-	return CanvasPoint(u, v , 1/adjustedVector.z);
-
-}
-
-void renderClouds(DrawingWindow &window) {
-	glm::vec3 cameraPosition = glm::vec3(0.0, 0.0,4.0);
-	float focalLength = 2.0;
-	float scaling = 0.35;
-	std::vector<ModelTriangle> theTriModels = loadModel(scaling, "cornell-box.obj", "cornell-box.mtl");
-
-	uint32_t colour = (255 << 24) + (255 << 16) + (255<< 8) + 255;
-
-
-	for (ModelTriangle singleTri : theTriModels) {
-		for (glm::vec3 vertex: singleTri.vertices) {
-			CanvasPoint projectedPoint = projectVertexOntoCanvasPoint(cameraPosition, focalLength, vertex);
-			window.setPixelColour(round(projectedPoint.x ), round(projectedPoint.y ), colour);
-
-		}
-	}
-}
-CanvasTriangle convert3DTriTo2D(ModelTriangle triangleIn3D, glm::vec3 cameraPosition, float focalLength) {
-	CanvasPoint v1, v2, v3;
-	auto vertices3D = triangleIn3D.vertices;
-	v1 = projectVertexOntoCanvasPoint(cameraPosition,focalLength, vertices3D[0]);
-	v2 = projectVertexOntoCanvasPoint(cameraPosition, focalLength, vertices3D[1]);
-	v3 = projectVertexOntoCanvasPoint(cameraPosition, focalLength, vertices3D[2]);
-
-
-	return CanvasTriangle(v1, v2, v3);
-}
-CanvasTriangle convert3DTriTo2D(ModelTriangle triangleIn3D, glm::vec3 cameraPosition, glm::mat3 cameraOrientation, float focalLength) {
-	CanvasPoint v1, v2, v3;
-	auto vertices3D = triangleIn3D.vertices;
-	v1 = projectVertexOntoCanvasPoint(cameraPosition, cameraOrientation ,focalLength, vertices3D[0]);
-	v2 = projectVertexOntoCanvasPoint(cameraPosition,cameraOrientation , focalLength, vertices3D[1]);
-	v3 = projectVertexOntoCanvasPoint(cameraPosition, cameraOrientation, focalLength, vertices3D[2]);
-
-	//Store the depth in the depth field of the respective Canvas Point (AFTER CONVERTING TO CAMERA COORDS)
-	// v1.depth = 1/(cameraPosition.z -  vertices3D[0].z );
-	// v2.depth = 1/(cameraPosition.z -  vertices3D[1].z );
-	// v3.depth = 1/(cameraPosition.z - vertices3D[2].z);
-	return CanvasTriangle(v1, v2, v3);
-}
-void renderSketchedModel(DrawingWindow &window, std::vector<ModelTriangle> &theTriModels, glm::vec3 cameraPosition, glm::mat3 cameraOrientation ,float focalLength ) {
-	window.clearPixels();
-	for (ModelTriangle triIn3D : theTriModels) {
-		CanvasTriangle triIn2D = convert3DTriTo2D(triIn3D, cameraPosition, cameraOrientation, focalLength);
-		drawingATriangle(window, triIn2D, Colour(255, 255, 255));
-	}
-
-}
 
 void fillTriangleWithDepth(DrawingWindow &window, std::vector<std::vector<float>> &zBuffer, CanvasTriangle tri, Colour colour) {
 	uint32_t colourAsInt = (255 << 24) + (int(colour.red) << 16) + (int(colour.green) << 8) + int(colour.blue);
@@ -235,42 +92,7 @@ void renderRasterizedModel(DrawingWindow &window, std::vector<ModelTriangle> &th
 	}
 
 }
-void lookAt(glm::vec3 center, glm::mat3 &cameraOrientation, glm::vec3 cameraPosition) {
 
-	glm::vec3 forward, right, up;
-	glm::vec3 vertical(0, 1, 0);
-
-
-	forward =glm::normalize(center - cameraPosition) ;
-
-	right = glm::cross(forward, vertical);
-	right = glm::normalize(right);
-	up = glm::cross(right, forward);
-
-
-	cameraOrientation[0] = right;
-	cameraOrientation[1] = up;
-	cameraOrientation[2] = forward;
-
-}
-#include <unistd.h>
-
-void orbit(DrawingWindow &drawing_window, glm::vec3 &cameraPosition, glm::mat3 &cameraOrientation, bool &orbitStatus){
-	drawing_window.clearPixels();
-
-	// glm::vec3 stopPosition(0, 0, 0);
-	// if (start) {
-	// start = false;
-	// }
-	glm::vec3 center(0,0,0);
-	if (orbitStatus) {
-		rotateAroundY(cameraPosition, +60);
-		lookAt(center, cameraOrientation, cameraPosition);
-		usleep(500000);
-	}
-
-
-}
 void handleEvent(SDL_Event event, DrawingWindow &window, glm::vec3 &cameraPosition, glm::mat3 &cameraOrientation, bool &orbitStatus, int &renderMode, glm::vec3 &lightSourcePosition) {
 
 	if (event.type == SDL_KEYDOWN) {

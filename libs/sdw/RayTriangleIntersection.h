@@ -10,6 +10,7 @@ struct RayTriangleIntersection {
 	ModelTriangle intersectedTriangle;
 	size_t triangleIndex;
 	uint32_t textureColourAsInt;
+	bool intersectionFound;
 
 	RayTriangleIntersection();
 	RayTriangleIntersection(const glm::vec3 &point, float distance, const ModelTriangle &triangle, size_t index);

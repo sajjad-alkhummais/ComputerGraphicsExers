@@ -44,6 +44,10 @@ add_executable(RedNoise
         libs/sdw/MyFunctions/Texturing.cpp
         libs/sdw/MyFunctions/Wireframe.h
         libs/sdw/MyFunctions/Wireframe.cpp
+        libs/sdw/MyFunctions/CameraMovements.h
+        libs/sdw/MyFunctions/CameraMovements.cpp
+        libs/sdw/MyFunctions/Projection.h
+        libs/sdw/MyFunctions/Projection.cpp
 )
 
 if (MSVC)

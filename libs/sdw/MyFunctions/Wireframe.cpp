@@ -115,7 +115,7 @@ void test_interpolateThreeElementValues() {
 			  << "(" << end.x << "," << end.y << "," << end.z << ")"
 			  << " in " << num << " steps:" << std::endl;
 
-	for (int i = 0; i < values.size(); i++) {
+	for (size_t i = 0; i < values.size(); i++) {
 		std::cout << i << ": ("
 				  << values[i].x << ", "
 				  << values[i].y << ", "
@@ -338,3 +338,14 @@ void testDrawingATriangle(DrawingWindow &window) {
 
 }
 
+
+
+
+void renderSketchedModel(DrawingWindow &window, std::vector<ModelTriangle> &theTriModels, glm::vec3 cameraPosition, glm::mat3 cameraOrientation ,float focalLength ) {
+	window.clearPixels();
+	for (ModelTriangle triIn3D : theTriModels) {
+		CanvasTriangle triIn2D = convert3DTriTo2D(triIn3D, cameraPosition, cameraOrientation, focalLength);
+		drawingATriangle(window, triIn2D, Colour(255, 255, 255));
+	}
+
+}

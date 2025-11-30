@@ -16,6 +16,7 @@ RayTriangleIntersection getClosestValidIntersection(glm::vec3 cameraPosition, gl
 
 	int triangleIndex = 0;
 	bool foundValidIntersection = false;
+	intersection.intersectionFound = false;
 	for (ModelTriangle triangle : theTriModels) {
 
 		glm::vec3 e0 = triangle.vertices[1] - triangle.vertices[0];
@@ -35,7 +36,7 @@ RayTriangleIntersection getClosestValidIntersection(glm::vec3 cameraPosition, gl
 		//&& t > focalLength;
 		if (validIntersection) {
 			//printf("in\n");
-			foundValidIntersection = true;
+			intersection.intersectionFound = true;
 			if (distanceFromCamera < closestIntersection) {
 				closestIntersection = distanceFromCamera;
 				intersection.intersectedTriangle = triangle;
@@ -58,7 +59,6 @@ RayTriangleIntersection getClosestValidIntersection(glm::vec3 cameraPosition, gl
 	}
 
 	//To recoginize when there isn't any valid intersections
-	if (foundValidIntersection == false) intersection.triangleIndex = -1;
 
 	return intersection;
 }
@@ -90,7 +90,8 @@ void renderRaytracedModel(DrawingWindow &window, std::vector<ModelTriangle> &the
 			rayDirection = glm::normalize(rayDirection) ;
 			RayTriangleIntersection intersection = getClosestValidIntersection(cameraPosition, rayDirection, theTriModels, textureArray );
 
-			if (intersection.triangleIndex != -1) {
+			if (intersection.intersectionFound) {
+
 
 				//printf("inside %d, %d \n", x, y);
 				uint32_t colour = convertColourToInt(
@@ -112,7 +113,7 @@ bool isInShadow(std::vector<ModelTriangle> &theTriModels,  std::vector<std::vect
 	RayTriangleIntersection shadowRayIntersection = getClosestValidIntersection(intersectionPointOfSurface, shadowRayDirection, theTriModels, textureArray);
 	float distanceFromSurfaceToIntersection = shadowRayIntersection.distanceFromCamera;
 	float distanceFromSurfaceToLightSource = glm::distance(lightSourcePosition, intersectionPointOfSurface);
-	bool inShadow = shadowRayIntersection.triangleIndex != -1
+	bool inShadow = shadowRayIntersection.intersectionFound
 	&& distanceFromSurfaceToIntersection < distanceFromSurfaceToLightSource; //Condition implies that the shadow ray has collided
 //	with triangles before reaching the light source, so this point is in shadow.
 
@@ -158,7 +159,7 @@ void renderRaytracedModelWithShadows(DrawingWindow &window, std::vector<ModelTri
 			rayDirection = cameraOrientation * localRayDirection ;
 			rayDirection = glm::normalize(rayDirection);
 			RayTriangleIntersection intersection = getClosestValidIntersection(cameraPosition, rayDirection, theTriModels, textureArray);
-			if (intersection.triangleIndex != -1) {
+			if (intersection.intersectionFound) {
 
 				//printf("inside %d, %d \n", x, y);
 				glm::vec3 intersectionPointOfSurface = intersection.intersectionPoint; //in 3d

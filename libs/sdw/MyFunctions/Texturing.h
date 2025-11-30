@@ -8,6 +8,7 @@
 
 #endif //REDNOISE_TEXTURING_H
 
+#include "glm/glm.hpp"
 
 #include "CanvasTriangle.h"
 #include "Colour.h"
