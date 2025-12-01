@@ -345,7 +345,8 @@ void renderSketchedModel(DrawingWindow &window, std::vector<ModelTriangle> &theT
 	window.clearPixels();
 	for (ModelTriangle triIn3D : theTriModels) {
 		CanvasTriangle triIn2D = convert3DTriTo2D(triIn3D, cameraPosition, cameraOrientation, focalLength);
-		drawingATriangle(window, triIn2D, Colour(255, 255, 255));
+		Colour col = triIn3D.colour;
+		drawingATriangle(window, triIn2D, col);
 	}
 
 }

@@ -8,8 +8,8 @@
 uint32_t brightenColour(Colour colour, float brightness, bool isInShadow) {
 
 	brightness = std::min(brightness, 1.0f);
-    brightness = std::max(0.45f, brightness);
-    if (isInShadow) brightness = 0.4f;
+    // brightness = std::max(0.35f, brightness);
+    // if (isInShadow) brightness = 0.2f;
 
 	// printf("brightness: %f\n", distanceFromLight * distanceFromLight);
 	float litRed = float(colour.red) * brightness;

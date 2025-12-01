@@ -127,7 +127,6 @@ bool isInShadow(std::vector<ModelTriangle> &theTriModels,  std::vector<std::vect
 void renderRaytracedModelWithShadows(DrawingWindow &window, std::vector<ModelTriangle> &theTriModels, std::vector<std::vector<uint32_t>> &textureArray, glm::vec3 cameraPosition, glm::mat3 cameraOrientation, glm::vec3 lightSourcePosition, float focalLength){
 	float imagePlaneScaling = 1.0/160;
 
-	window.clearPixels();
 	#pragma omp parallel for
 
 	for (int y = 0; y< HEIGHT; y++) {
@@ -153,7 +152,7 @@ void renderRaytracedModelWithShadows(DrawingWindow &window, std::vector<ModelTri
 				Colour colour = intersection.intersectedTriangle.colour;
 				u_int32_t finalColour = 0;
 
-					finalColour = applyLightingEffects(colour, 30,  lightSourcePosition, intersection, cameraPosition, !isLit);
+					finalColour = applyLightingEffects(colour, 50,  lightSourcePosition, intersection, cameraPosition, !isLit);
 
 					//Check texturing:
 					if (intersection.intersectedTriangle.hasTexture)
