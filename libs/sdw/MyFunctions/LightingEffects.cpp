@@ -9,7 +9,7 @@ Colour brightenColour(Colour colour, float diffuseBrightness, float specularBrig
 
     if (isInShadow) {
         // In shadow: only ambient light
-        diffuseBrightness = 0.2f;  // Ambient thresh
+        diffuseBrightness = 0.1f;  // Ambient thresh
         specularBrightness = 0.0f;
     } else {
         diffuseBrightness = std::max(0.2f, diffuseBrightness);  //Ambient minimum

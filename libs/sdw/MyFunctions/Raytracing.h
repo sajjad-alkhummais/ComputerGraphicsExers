@@ -33,7 +33,7 @@ void renderRaytracedModelWithShadows(DrawingWindow &window,
     std::vector<std::vector<uint32_t>> &textureArray,
     glm::vec3 cameraPosition,
     glm::mat3 cameraOrientation,
-    glm::vec3 lightSourcePosition,
+    std::vector<glm::vec3> lightSourcePositions,
     float focalLength,
     std::vector<glm::vec3> uniqueVertices,
     std::vector<glm::vec3> vertexNormals);

@@ -112,6 +112,7 @@ void renderRaytracedModel(DrawingWindow &window, std::vector<ModelTriangle> &the
 
 }
 
+
 bool isInShadow(std::vector<ModelTriangle> &theTriModels,  std::vector<std::vector<uint32_t>> &textureArray, glm::vec3 sourcePosition, glm::vec3 lightSourcePosition) {
 
 	glm::vec3 intersectionPointOfSurface = sourcePosition; //in 3d
@@ -136,13 +137,12 @@ RayTriangleIntersection getReflectedRay(const RayTriangleIntersection& initialIn
 	return reflectionIntersection;
 }
 
-
 void renderRaytracedModelWithShadows(DrawingWindow &window,
 	std::vector<ModelTriangle> &theTriModels,
 	std::vector<std::vector<uint32_t>> &textureArray,
 	glm::vec3 cameraPosition,
 	glm::mat3 cameraOrientation,
-	glm::vec3 lightSourcePosition,
+	std::vector<glm::vec3> lightSourcePositions,
 	float focalLength,
 	std::vector<glm::vec3> uniqueVertices,
 	std::vector<glm::vec3> vertexNormals){
@@ -173,7 +173,7 @@ void renderRaytracedModelWithShadows(DrawingWindow &window,
 				glm::vec3 intersectionPointOfSurface = intersection.intersectionPoint; //in 3d
 				//10 and 11 is right wall
 				//31 and 26 is blue box front
-				bool mirroredSurface = intersection.intersectedTriangle.triangleIndex == 10 || intersection.intersectedTriangle.triangleIndex == 11;
+				bool mirroredSurface = intersection.intersectedTriangle.triangleIndex == 31 || intersection.intersectedTriangle.triangleIndex == 26;
 				if (mirroredSurface && !modelIsTheSphere) {
 					// printf("mirroed surface!%i \n ", colour.blue);
 					RayTriangleIntersection reflectionIntersection = getReflectedRay(intersection, rayDirection, theTriModels, textureArray);
@@ -189,24 +189,43 @@ void renderRaytracedModelWithShadows(DrawingWindow &window,
 				//interpolateNormals using phong
 				glm::vec3 interpolatedNormal = getNormalUsingPhong(intersection, uniqueVertices, vertexNormals);
 
-				bool inShadow = isInShadow(theTriModels,textureArray, intersectionPointOfSurface, lightSourcePosition);
-
 				uint32_t finalColour = 0;
 				Colour brightenedColour;
-				//Apply Lighting or shading
-				float intensity = 30;
-				if (!modelIsTheSphere) {
-					brightenedColour = applyLightingEffects(colour, intensity,  lightSourcePosition, intersectionPointOfSurface, intersection.intersectedTriangle.normal, cameraPosition, inShadow);
-				}
-				else {
-					brightenedColour = applyLightingEffects(colour, intensity,  lightSourcePosition, intersectionPointOfSurface, interpolatedNormal, cameraPosition, inShadow);
-					// brightenedColour = applyGouraud(intensity, colour, intersection.intersectedTriangle.vertices,
-					// 	uniqueVertices, vertexNormals, cameraPosition,
-					// 	lightSourcePosition, inShadow, intersection.barycentericValues );
-				}
+				glm::vec3 brightenedColours;
 
+				int shadowCollisions = 0;
+				for (glm::vec3 lightSourcePosition : lightSourcePositions) {
+					bool inShadow = isInShadow(theTriModels,textureArray, intersectionPointOfSurface, lightSourcePosition);
+					// float shadowPercentage = isInSoftShadow(theTriModels,textureArray, intersectionPointOfSurface, lightSourcePositions);
+					if (inShadow) shadowCollisions++;
+					else {
+
+					}
+
+					//Apply Lighting or shading
+					float intensity = 35;
+
+					if (!modelIsTheSphere) {
+						brightenedColour = applyLightingEffects(colour, intensity,  lightSourcePosition, intersectionPointOfSurface, intersection.intersectedTriangle.normal, cameraPosition, inShadow);
+					}
+					else {
+						brightenedColour = applyLightingEffects(colour, intensity,  lightSourcePosition, intersectionPointOfSurface, interpolatedNormal, cameraPosition, inShadow);
+						// brightenedColour = applyGouraud(intensity, colour, intersection.intersectedTriangle.vertices,
+						// 	uniqueVertices, vertexNormals, cameraPosition,
+						// 	lightSourcePosition, inShadow, intersection.barycentericValues );
+					}
+					glm::vec3 colourAsVector(brightenedColour.red, brightenedColour.green, brightenedColour.blue);
+					brightenedColours += colourAsVector;
+
+
+				}
+				//Averaging each colour channel:
+
+				brightenedColours = brightenedColours/ static_cast<float>(lightSourcePositions.size());
+				brightenedColour.red = brightenedColours.x;
+				brightenedColour.green = brightenedColours.y;
+				brightenedColour.blue = brightenedColours.z;
 				finalColour = convertColourToInt(brightenedColour);
-
 				//Check texturing: (lighting and mirroring on textures not implemented)
 				if (intersection.intersectedTriangle.hasTexture) {
 

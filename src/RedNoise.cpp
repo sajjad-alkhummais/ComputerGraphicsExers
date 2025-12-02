@@ -17,7 +17,7 @@
 #include "MyFunctions/CameraMovements.h"
 #include "MyFunctions/Projection.h"
 #include "MyFunctions/Shading.h"
-
+#include <glm/gtc/random.hpp>
 
 #include <cmath>
 
@@ -206,6 +206,19 @@ void generateAnimation(DrawingWindow &window, std::vector<ModelTriangle> &theTri
     std::cout << "Animation Render Complete!" << std::endl;
 }
 
+
+//Generates the specified number of light positions in the specified range
+//We generate random postions in range x, y, z = radius, numberOfLights times at the center
+std::vector<glm::vec3> generateClusterOfLight(float radius, int numberOflights, glm::vec3 center) {
+	std::vector<glm::vec3> lightPositions;
+	for (int i = 0; i <= numberOflights; i++) {
+		glm::vec3 randomOffset = glm::ballRand(radius);
+		glm::vec3 lightPosition = center + randomOffset;
+		lightPositions.push_back(lightPosition);
+	}
+
+	return lightPositions;
+}
 int main(int argc, char *argv[]) {
 
 //	 test_interpolateSingleFloats();
@@ -213,6 +226,7 @@ int main(int argc, char *argv[]) {
 
 	int renderMode = 0;
 	glm::vec3 cameraPosition = glm::vec3(0.0, 0.0,4.0);
+	//This will be used as the center for the cluster of lights as well.
 	glm::vec3 lightSourcePosition = glm::vec3(0, 2 * 0.35, 0.35*3);
 
 	glm::mat3 cameraOrientation (
@@ -260,11 +274,7 @@ int main(int argc, char *argv[]) {
 	//	testDrawingATriangle(window);
 		//renderClouds(window);
 		//renderSketchedModel(window);
-
-
 		//renderRasterizedModel(window, cameraPosition, cameraOrientation, focalLength, scaling);
-
-
 		// test_loadUntexturedModel();
 		//testGetClosestValidIntersection();
 
@@ -272,8 +282,10 @@ int main(int argc, char *argv[]) {
 		if (renderMode == 1) renderSketchedModel(window, theTrisOfCornellBox, cameraPosition, cameraOrientation, focalLength);
 		else if (renderMode == 2) renderRasterizedModel(window,theTrisOfCornellBox, cameraPosition, cameraOrientation, focalLength );
 		else if (renderMode == 3) {
-		 	renderRaytracedModelWithShadows(window, theTriModels, textureArray, cameraPosition, cameraOrientation, lightSourcePosition, focalLength, uniqueVerticesOfCornellBox, cornellBoxVertexNormals);
-		 	renderRaytracedModelWithShadows(window, theTrisOfSphere, textureArray, cameraPosition, cameraOrientation, lightSourcePosition, focalLength, uniqueVerticesOfSphere, sphereVertexNormals);
+			std::srand(12345);
+			std::vector<glm::vec3> lightPositions = generateClusterOfLight(0.2, 64, lightSourcePosition);
+		 	renderRaytracedModelWithShadows(window, theTriModels, textureArray, cameraPosition, cameraOrientation, lightPositions, focalLength, uniqueVerticesOfCornellBox, cornellBoxVertexNormals);
+		 	// renderRaytracedModelWithShadows(window, theTrisOfSphere, textureArray, cameraPosition, cameraOrientation, lightPositions, focalLength, uniqueVerticesOfSphere, sphereVertexNormals);
 		 	// renderRaytracedModel(window, theTriModels, cameraPosition, cameraOrientation, focalLength);
 		 //	renderMode = 0;
 
