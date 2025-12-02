@@ -16,9 +16,12 @@
 #include "MyFunctions/Texturing.h"
 #include "MyFunctions/CameraMovements.h"
 #include "MyFunctions/Projection.h"
+#include "MyFunctions/Shading.h"
 
 
 #include <cmath>
+
+#include "glm/gtx/dual_quaternion.hpp"
 #define WIDTH 320
 #define HEIGHT 240
 
@@ -185,7 +188,7 @@ void generateAnimation(DrawingWindow &window, std::vector<ModelTriangle> &theTri
             renderRasterizedModel(window, theTriModels, cameraPosition, cameraOrientation, focalLength);
         }
         else if (renderMode == 3) {
-            renderRaytracedModelWithShadows(window, theTriModels, textureArray, cameraPosition, cameraOrientation, lightSourcePosition, focalLength);
+            // renderRaytracedModelWithShadows(window, theTriModels, textureArray, cameraPosition, cameraOrientation, lightSourcePosition, focalLength);
         }
 
         // --- SAVE FRAME ---
@@ -202,6 +205,7 @@ void generateAnimation(DrawingWindow &window, std::vector<ModelTriangle> &theTri
 
     std::cout << "Animation Render Complete!" << std::endl;
 }
+
 int main(int argc, char *argv[]) {
 
 //	 test_interpolateSingleFloats();
@@ -209,7 +213,7 @@ int main(int argc, char *argv[]) {
 
 	int renderMode = 0;
 	glm::vec3 cameraPosition = glm::vec3(0.0, 0.0,4.0);
-	glm::vec3 lightSourcePosition = glm::vec3(0, 2 * 0.35, 0.35*2);
+	glm::vec3 lightSourcePosition = glm::vec3(0, 2 * 0.35, 0.35*3);
 
 	glm::mat3 cameraOrientation (
 		1, 0, 0,
@@ -223,10 +227,17 @@ int main(int argc, char *argv[]) {
 	DrawingWindow window = DrawingWindow(WIDTH, HEIGHT, false);
 
 	//Load models and textures
-	std::vector<ModelTriangle> theTriModels = loadModel(scaling, "cornell-box.obj", "cornell-box.mtl");
-	std::vector<ModelTriangle> theTriOfSphere = loadModel(0.35, "sphere_updated.obj", "cornell-box.mtl");
+	std::vector<ModelTriangle> theTrisOfCornellBox = loadModel(scaling, "cornell-box.obj", "cornell-box.mtl");
+	std::vector<ModelTriangle> theTrisOfSphere = loadModel(0.35, "sphere_updated.obj", "cornell-box.mtl");
+
+	std::vector<glm::vec3> uniqueVerticesOfCornellBox = getUniqueVertices(theTrisOfCornellBox);
+	std::vector<glm::vec3> uniqueVerticesOfSphere = getUniqueVertices(theTrisOfSphere);
+
+	std::vector<glm::vec3> cornellBoxVertexNormals = calculateVertexNormals(theTrisOfSphere, uniqueVerticesOfSphere);
+	std::vector<glm::vec3> sphereVertexNormals = calculateVertexNormals(theTrisOfSphere, uniqueVerticesOfSphere);
 
 	// std::vector<ModelTriangle> theTriModels = loadModel(scaling, "textured-cornell-box.obj", "textured-cornell-box.mtl");
+
 	TextureMap textureFile = TextureMap("ModelsFiles/texture.ppm");
 	std::vector<std::vector<uint32_t>> textureArray = createTextureArray(textureFile);
 
@@ -258,11 +269,11 @@ int main(int argc, char *argv[]) {
 		//testGetClosestValidIntersection();
 
 		orbit(window, cameraPosition, cameraOrientation, orbitStatus);
-		if (renderMode == 1) renderSketchedModel(window, theTriModels, cameraPosition, cameraOrientation, focalLength);
-		else if (renderMode == 2) renderRasterizedModel(window,theTriModels, cameraPosition, cameraOrientation, focalLength );
+		if (renderMode == 1) renderSketchedModel(window, theTrisOfCornellBox, cameraPosition, cameraOrientation, focalLength);
+		else if (renderMode == 2) renderRasterizedModel(window,theTrisOfCornellBox, cameraPosition, cameraOrientation, focalLength );
 		else if (renderMode == 3) {
-		 	renderRaytracedModelWithShadows(window, theTriModels, textureArray, cameraPosition, cameraOrientation, lightSourcePosition, focalLength);
-		 	renderRaytracedModelWithShadows(window, theTriOfSphere, textureArray, cameraPosition, cameraOrientation, lightSourcePosition, focalLength);
+		 	// renderRaytracedModelWithShadows(window, theTrisOfCornellBox, textureArray, cameraPosition, cameraOrientation, lightSourcePosition, focalLength, uniqueVerticesOfCornellBox, cornellBoxVertexNormals);
+		 	renderRaytracedModelWithShadows(window, theTrisOfSphere, textureArray, cameraPosition, cameraOrientation, lightSourcePosition, focalLength, uniqueVerticesOfSphere, sphereVertexNormals);
 		 	// renderRaytracedModel(window, theTriModels, cameraPosition, cameraOrientation, focalLength);
 		 //	renderMode = 0;
 

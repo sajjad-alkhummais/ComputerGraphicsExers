@@ -50,6 +50,8 @@ add_executable(RedNoise
         libs/sdw/MyFunctions/Projection.cpp
         libs/sdw/MyFunctions/LightingEffects.h
         libs/sdw/MyFunctions/LightingEffects.cpp
+        libs/sdw/MyFunctions/Shading.h
+        libs/sdw/MyFunctions/Shading.cpp
 )
 
 if (MSVC)
