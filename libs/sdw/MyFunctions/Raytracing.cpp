@@ -168,9 +168,10 @@ void renderRaytracedModelWithShadows(DrawingWindow &window,
 
 				bool modelIsTheSphere = theTriModels.size() > 40;
 
+
 				Colour colour = intersection.intersectedTriangle.colour;
 				glm::vec3 intersectionPointOfSurface = intersection.intersectionPoint; //in 3d
-				//10 and 11 is left wall
+				//10 and 11 is right wall
 				//31 and 26 is blue box front
 				bool mirroredSurface = intersection.intersectedTriangle.triangleIndex == 10 || intersection.intersectedTriangle.triangleIndex == 11;
 				if (mirroredSurface && !modelIsTheSphere) {
@@ -185,16 +186,8 @@ void renderRaytracedModelWithShadows(DrawingWindow &window,
 
 
 
-				//Apply Phong
+				//interpolateNormals using phong
 				glm::vec3 interpolatedNormal = getNormalUsingPhong(intersection, uniqueVertices, vertexNormals);
-
-				// In your rendering code, before calling applyGouraud:
-				// Pass the face normal 3 times instead of looking up vertex normals
-				std::vector<glm::vec3> fakeVertexNormals = {
-					intersection.intersectedTriangle.normal,
-					intersection.intersectedTriangle.normal,
-					intersection.intersectedTriangle.normal
-				};
 
 				bool inShadow = isInShadow(theTriModels,textureArray, intersectionPointOfSurface, lightSourcePosition);
 
@@ -213,9 +206,16 @@ void renderRaytracedModelWithShadows(DrawingWindow &window,
 				}
 
 				finalColour = convertColourToInt(brightenedColour);
-				//Check texturing: (lighting on textures not implemented)
-				if (intersection.intersectedTriangle.hasTexture)
+
+				//Check texturing: (lighting and mirroring on textures not implemented)
+				if (intersection.intersectedTriangle.hasTexture) {
+
 					finalColour = intersection.textureColourAsInt;
+					// brightencol.red   = (intersection.texturecolourasint >> 16) & 0xff;
+					// brightencol.green = (intersection.texturecolourasint >> 8)  & 0xff;
+					// brightencol.blue  =  intersection.texturecolourasint        & 0xff;
+
+				}
 
 
 				window.setPixelColour(x, y, finalColour);
