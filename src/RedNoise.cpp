@@ -228,7 +228,7 @@ int main(int argc, char *argv[]) {
 
 	//Load models and textures
 	std::vector<ModelTriangle> theTrisOfCornellBox = loadModel(scaling, "cornell-box.obj", "cornell-box.mtl");
-	std::vector<ModelTriangle> theTrisOfSphere = loadModel(0.35, "sphere_updated.obj", "cornell-box.mtl");
+	std::vector<ModelTriangle> theTrisOfSphere = loadModel(0.35, "sphere.obj", "cornell-box.mtl");
 
 	std::vector<glm::vec3> uniqueVerticesOfCornellBox = getUniqueVertices(theTrisOfCornellBox);
 	std::vector<glm::vec3> uniqueVerticesOfSphere = getUniqueVertices(theTrisOfSphere);
@@ -272,8 +272,8 @@ int main(int argc, char *argv[]) {
 		if (renderMode == 1) renderSketchedModel(window, theTrisOfCornellBox, cameraPosition, cameraOrientation, focalLength);
 		else if (renderMode == 2) renderRasterizedModel(window,theTrisOfCornellBox, cameraPosition, cameraOrientation, focalLength );
 		else if (renderMode == 3) {
-		 	// renderRaytracedModelWithShadows(window, theTrisOfCornellBox, textureArray, cameraPosition, cameraOrientation, lightSourcePosition, focalLength, uniqueVerticesOfCornellBox, cornellBoxVertexNormals);
-		 	renderRaytracedModelWithShadows(window, theTrisOfSphere, textureArray, cameraPosition, cameraOrientation, lightSourcePosition, focalLength, uniqueVerticesOfSphere, sphereVertexNormals);
+		 	renderRaytracedModelWithShadows(window, theTrisOfCornellBox, textureArray, cameraPosition, cameraOrientation, lightSourcePosition, focalLength, uniqueVerticesOfCornellBox, cornellBoxVertexNormals);
+		 	// renderRaytracedModelWithShadows(window, theTrisOfSphere, textureArray, cameraPosition, cameraOrientation, lightSourcePosition, focalLength, uniqueVerticesOfSphere, sphereVertexNormals);
 		 	// renderRaytracedModel(window, theTriModels, cameraPosition, cameraOrientation, focalLength);
 		 //	renderMode = 0;
 

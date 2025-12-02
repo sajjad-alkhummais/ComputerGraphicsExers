@@ -10,10 +10,12 @@ glm::vec3 getVertexNormal(glm::vec3 vertex,
                           std::vector<glm::vec3>& vertexNormals) {
 
     for (int i = 0; i < uniqueVertices.size(); i++) {
-        if (uniqueVertices[i] == vertex) {
+        float distance = glm::length(uniqueVertices[i] - vertex);
+        if (distance < 0.0001f) {  // Vertices within 0.0001 units are "equal"
             return vertexNormals[i];
         }
     }
+    printf("problem\n");
     return glm::vec3(0, 1, 0); // default if not founddef
 }
 std::vector<glm::vec3> getUniqueVertices(std::vector<ModelTriangle> triangles) {
@@ -62,4 +64,26 @@ std::vector<glm::vec3> calculateVertexNormals(std::vector<ModelTriangle> triangl
     }
 
     return vertexNormals;
+}
+
+glm::vec3 getNormalUsingPhong(RayTriangleIntersection intersection,  std::vector<glm::vec3> uniqueVertices,  std::vector<glm::vec3> vertexNormals) {
+
+
+    glm::vec3 v0 = intersection.intersectedTriangle.vertices[0];
+    glm::vec3 v1 = intersection.intersectedTriangle.vertices[1];
+    glm::vec3 v2 = intersection.intersectedTriangle.vertices[2];
+
+    glm::vec3 normal0 = getVertexNormal(v0, uniqueVertices, vertexNormals);
+    glm::vec3 normal1 = getVertexNormal(v1, uniqueVertices, vertexNormals);
+    glm::vec3 normal2 = getVertexNormal(v2, uniqueVertices, vertexNormals);
+
+    std::vector<glm::vec3> normals;
+    normals.push_back(normal0);
+    normals.push_back(normal1);
+    normals.push_back(normal2);
+    float u = intersection.barycentericValues.x;
+    float v = intersection.barycentericValues.y;
+    float w = intersection.barycentericValues.z;
+    glm::vec3 interpolatedNormal = glm::normalize(u * normal0 + v * normal1 + w * normal2);
+    return interpolatedNormal;
 }

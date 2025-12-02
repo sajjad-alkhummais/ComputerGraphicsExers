@@ -12,6 +12,7 @@ struct ModelTriangle {
 	bool hasTexture;
 	Colour colour{};
 	glm::vec3 normal{};
+	int triangleIndex;
 
 	ModelTriangle();
 	ModelTriangle(const glm::vec3 &v0, const glm::vec3 &v1, const glm::vec3 &v2, Colour trigColour);

@@ -5,16 +5,16 @@
 
 #include <algorithm>
 
-uint32_t brightenColour(Colour colour, float diffuseBrightness, float specularBrightness, bool isInShadow) {
+Colour brightenColour(Colour colour, float diffuseBrightness, float specularBrightness, bool isInShadow) {
 
+    if (isInShadow) {
+        // In shadow: only ambient light
+        diffuseBrightness = 0.2f;  // Ambient thresh
+        specularBrightness = 0.0f;
+    } else {
+        diffuseBrightness = std::max(0.2f, diffuseBrightness);  //Ambient minimum
+    }
 
-    // brightness = std::max(0.35f, brightness);
-    // if (isInShadow) brightness = 0.2f;
-
-	// printf("brightness: %f\n", distanceFromLight * distanceFromLight);
-	// float litRed = float(colour.red) * brightness;
-	// float litBlue =  float(colour.blue )* brightness;
-	// float litGreen =  float(colour.green )* brightness;
     float litRed = float(colour.red) * diffuseBrightness;
     float litBlue =  float(colour.blue )* diffuseBrightness;
     float litGreen =  float(colour.green )* diffuseBrightness;
@@ -22,12 +22,16 @@ uint32_t brightenColour(Colour colour, float diffuseBrightness, float specularBr
     litRed += 255.0f * specularBrightness;
     litGreen += 255.0f * specularBrightness;
     litBlue += 255.0f * specularBrightness;
+
     litRed = std::max(0.0f, std::min(255.0f, litRed));
     litGreen = std::max(0.0f, std::min(255.0f, litGreen));
     litBlue = std::max(0.0f, std::min(255.0f, litBlue));
-	uint32_t updatedColour = (255 << 24) + ((int)litRed << 16) + ((int) litGreen << 8) + (int)litBlue;
 
-	return updatedColour;
+    return Colour(litRed, litGreen, litBlue);
+
+ //    uint32_t updatedColour = (255 << 24) + ((int)litRed << 16) + ((int) litGreen << 8) + (int)litBlue;
+ //
+	// return updatedColour;
 }
 
 
@@ -59,10 +63,10 @@ float getBrightnessWithProximity(float intensity, glm::vec3& lightSourcePosition
     return brightness;
 }
 
-float brightnessAfterSpecular(glm::vec3& lightSourcePosition,const glm::vec3& intersectionPoint, glm::vec3 normal, glm::vec3 cameraPosition, float brightness) {
+float getSpecularFactor(int shininessFactor,glm::vec3& lightSourcePosition,const glm::vec3& intersectionPoint, glm::vec3 normal, glm::vec3 cameraPosition, float brightness) {
 
     glm::vec3 vectorToLight = (intersectionPoint - lightSourcePosition);
-    glm::vec3 normalToSurf = glm::normalize( normal);
+    glm::vec3 normalToSurf = glm::normalize(normal);
 
     glm::vec3 ri = glm::normalize(vectorToLight);
     glm::vec3 viewVector = glm::normalize( cameraPosition - intersectionPoint);
@@ -72,7 +76,7 @@ float brightnessAfterSpecular(glm::vec3& lightSourcePosition,const glm::vec3& in
 
     float shininess = glm::dot(viewVector, reflectionVec);
     shininess = std::max(0.0f, shininess);
-    shininess = glm::pow(shininess, 32);
+    shininess = glm::pow(shininess, shininessFactor);
 
     // brightness = shininess+  brightness ;
 
@@ -81,7 +85,7 @@ float brightnessAfterSpecular(glm::vec3& lightSourcePosition,const glm::vec3& in
 }
 
 
-uint32_t applyLightingEffects(Colour colour, float intensity, glm::vec3& lightSourcePosition, const glm::vec3& intersectionPoint, glm::vec3 normal, glm::vec3 cameraPosition, bool isInShadow) {
+Colour applyLightingEffects(Colour colour, float intensity, glm::vec3& lightSourcePosition, const glm::vec3& intersectionPoint, glm::vec3 normal, glm::vec3 cameraPosition, bool isInShadow) {
     float diffuseBrightness;
 
     diffuseBrightness = getBrightnessWithProximity(intensity, lightSourcePosition, intersectionPoint, normal);
@@ -89,43 +93,35 @@ uint32_t applyLightingEffects(Colour colour, float intensity, glm::vec3& lightSo
 	diffuseBrightness = std::min(diffuseBrightness, 1.0f);
 
     float specularBrightness = 0.0f;
-    specularBrightness = brightnessAfterSpecular(lightSourcePosition, intersectionPoint, normal, cameraPosition, diffuseBrightness);
+    specularBrightness = getSpecularFactor(128, lightSourcePosition, intersectionPoint, normal, cameraPosition, diffuseBrightness);
 
-    return brightenColour(colour, diffuseBrightness, specularBrightness, isInShadow);
-
+    Colour brightenedColour = brightenColour(colour, diffuseBrightness, specularBrightness, isInShadow);
+	uint32_t brightenedColourAsInt = convertColourToInt(brightenedColour);
+    return brightenedColour;
 }
+
 
 uint32_t applyGouraud( float intensity,
     Colour baseColour,
-    std::array<glm::vec3, 3> triangleVertices, std::vector<glm::vec3> normal, glm::vec3 cameraPosition,  glm::vec3& lightSourcePosition, bool isInShadow,
+    std::array<glm::vec3, 3> triangleVertices, std::vector<glm::vec3> uniqueVertices,
+    std::vector<glm::vec3> vertexNormals, glm::vec3 cameraPosition,  glm::vec3& lightSourcePosition, bool isInShadow,
 	glm::vec3 barycentericValues
 ) {
 
-
     std::vector<glm::vec3> colours;
     for (int i = 0; i<3; i++) {
-        // float brightness ;
-        float diffuseBrightness;
-        float specularBrightness = 0.0f;
-        // if (isInShadow) {
-        //     brightness = 0.2f;
-        //     // brightness = 0;
-        // }else {
-            diffuseBrightness = getBrightnessWithProximity(intensity, lightSourcePosition, triangleVertices[i], normal[i]);
-            diffuseBrightness = updateBrightnessWithAOI(lightSourcePosition, triangleVertices[i], normal[i], diffuseBrightness);
-            diffuseBrightness = std::min(diffuseBrightness, 1.0f);
-            specularBrightness = brightnessAfterSpecular(lightSourcePosition, triangleVertices[i], normal[i], cameraPosition, diffuseBrightness);
-        // }
 
-        float litRed = float(baseColour.red) * diffuseBrightness;
-        float litBlue =  float(baseColour.blue )* diffuseBrightness;
-        float litGreen =  float(baseColour.green )* diffuseBrightness;
-
-        litRed += 255.0f * specularBrightness;
-        litGreen += 255.0f * specularBrightness;
-        litBlue += 255.0f * specularBrightness;
-
-        glm::vec3 colourAsVector(litRed, litGreen, litBlue);
+        glm::vec3 normali = getVertexNormal(triangleVertices[i],uniqueVertices, vertexNormals);
+        float normalLength = glm::length(normali);
+        if (normalLength < 0.01f) {
+            std::cout << "WARNING: Zero or near-zero normal at vertex " << i << std::endl;
+            std::cout << "Vertex: (" << triangleVertices[i].x << ", " << triangleVertices[i].y << ", " << triangleVertices[i].z << ")" << std::endl;
+            std::cout << "Normal: (" << normali.x << ", " << normali.y << ", " << normali.z << ")" << std::endl;
+        }
+        Colour brightenedColour = applyLightingEffects(baseColour, intensity, lightSourcePosition,
+            triangleVertices[i],normali,
+            cameraPosition, isInShadow);
+        glm::vec3 colourAsVector(brightenedColour.red, brightenedColour.green, brightenedColour.blue);
         colours.push_back(colourAsVector);
     }
 
@@ -143,3 +139,6 @@ uint32_t applyGouraud( float intensity,
 
 
 }
+
+
+

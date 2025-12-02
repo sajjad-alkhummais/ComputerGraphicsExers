@@ -6,6 +6,7 @@
 #ifndef REDNOISE_LIGHTINGEFFECTS_H
 #define REDNOISE_LIGHTINGEFFECTS_H
 
+#include "Shading.h"
 #include "RayTriangleIntersection.h"
 #include "DrawingWindow.h"
 #include "Texturing.h"
@@ -13,11 +14,13 @@
 
 float getBrightnessWithProximity(float intensity, glm::vec3& lightSourcePosition, const glm::vec3& intersectionPoint, glm::vec3 normal);
 float updateBrightnessWithAOI(glm::vec3& lightSourcePosition, const glm::vec3& intersectionPoint, glm::vec3 normal, float brightness);
-float brightnessAfterSpecular(glm::vec3& lightSourcePosition, const glm::vec3& intersectionPoint, glm::vec3 normal, float brightness);
-uint32_t brightenColour(Colour colour, float diffuseBrightness, float specularBrightness, bool isInShadow);
-uint32_t applyLightingEffects(Colour colour, float intensity, glm::vec3& lightSourcePosition, const glm::vec3& intersectionPoint, glm::vec3 normal, glm::vec3 cameraPosition, bool isInShadow);
+float getSpecularFactor(int shininessFactor, glm::vec3& lightSourcePosition, const glm::vec3& intersectionPoint, glm::vec3 normal, float brightness);
+Colour brightenColour(Colour colour, float diffuseBrightness, float specularBrightness, bool isInShadow);
+Colour applyLightingEffects(Colour colour, float intensity, glm::vec3& lightSourcePosition, const glm::vec3& intersectionPoint, glm::vec3 normal, glm::vec3 cameraPosition, bool isInShadow);
 uint32_t applyGouraud( float intensity,
     Colour baseColour,
-    std::array<glm::vec3, 3> triangleVertices, std::vector<glm::vec3> normal, glm::vec3 cameraPosition,  glm::vec3& lightSourcePosition, bool isInShadow,
+    std::array<glm::vec3, 3> triangleVertices,
+    std::vector<glm::vec3> uniqueVertices,
+    std::vector<glm::vec3> vertexNormals, glm::vec3 cameraPosition,  glm::vec3& lightSourcePosition, bool isInShadow,
     glm::vec3 barycentericValues
 );

@@ -50,6 +50,7 @@ std::vector<ModelTriangle> loadModel(float scaling, std::string nameOfObjectFile
 
 	TextureMap textureFile = TextureMap("ModelsFiles/texture.ppm");
 
+	int triangleIndex = 0;
 	std::vector<Colour> coloursPalette = loadColours("ModelsFiles/" + nameOfMaterialFile);
 
 	if (!f.is_open())
@@ -103,6 +104,8 @@ std::vector<ModelTriangle> loadModel(float scaling, std::string nameOfObjectFile
 
 				tri.normal = -glm::cross(tri.vertices[1] - tri.vertices[0], tri.vertices[2] - tri.vertices[0]);
 				tri.hasTexture = false;
+				tri.triangleIndex = triangleIndex;
+				triangleIndex++;
 
 				// Storing the texture ratios if they exist:
 				bool isTexture = (indexes[1][indexes[1].size() - 1] != '/');

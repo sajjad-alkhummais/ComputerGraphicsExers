@@ -15,7 +15,7 @@ RayTriangleIntersection getClosestValidIntersection(glm::vec3 cameraPosition, gl
 	RayTriangleIntersection intersection;
 	float closestIntersection = INFINITY;
 
-	int triangleIndex = 0;
+	// int triangleIndex = 0;
 	intersection.intersectionFound = false;
 	for (ModelTriangle triangle : theTriModels) {
 		glm::vec3 e0 = triangle.vertices[1] - triangle.vertices[0];
@@ -43,7 +43,7 @@ RayTriangleIntersection getClosestValidIntersection(glm::vec3 cameraPosition, gl
 				closestIntersection = distanceFromCamera;
 				intersection.intersectedTriangle = triangle;
 				intersection.distanceFromCamera = distanceFromCamera;
-				intersection.triangleIndex = triangleIndex;
+				intersection.triangleIndex = triangle.triangleIndex;
 				intersection.intersectionPoint =  cameraPosition +  distanceFromCamera * rayDirection; //This is relative to the world (converted by shifting by camera poisiton)
 
 
@@ -62,9 +62,8 @@ RayTriangleIntersection getClosestValidIntersection(glm::vec3 cameraPosition, gl
 			}
 		}
 
-			triangleIndex++;
+			// triangleIndex++;
 	}
-	//To recoginize when there isn't any valid intersections
 
 	return intersection;
 }
@@ -129,7 +128,13 @@ bool isInShadow(std::vector<ModelTriangle> &theTriModels,  std::vector<std::vect
 }
 
 
-
+RayTriangleIntersection getReflectedRay(const RayTriangleIntersection& initialIntersection, glm::vec3 incidentRay, std::vector<ModelTriangle> &theTriModels, std::vector<std::vector<uint32_t>> &textureArray) {
+	glm::vec3 normalToSurf = glm::normalize(initialIntersection.intersectedTriangle.normal);
+	glm::vec3 reflectionVec = incidentRay - (2.0f * normalToSurf * (glm::dot(incidentRay, normalToSurf )));
+	reflectionVec = glm::normalize(reflectionVec);
+	RayTriangleIntersection reflectionIntersection = getClosestValidIntersection(initialIntersection.intersectionPoint, reflectionVec, theTriModels, textureArray);
+	return reflectionIntersection;
+}
 
 
 void renderRaytracedModelWithShadows(DrawingWindow &window,
@@ -161,40 +166,49 @@ void renderRaytracedModelWithShadows(DrawingWindow &window,
 			RayTriangleIntersection intersection = getClosestValidIntersection(cameraPosition, rayDirection, theTriModels, textureArray);
 			if (intersection.intersectionFound) {
 
-				//printf("inside %d, %d \n", x, y);
 
-				glm::vec3 intersectionPointOfSurface = intersection.intersectionPoint; //in 3d
-
-				//Goraud
-				glm::vec3 v0 = intersection.intersectedTriangle.vertices[0];
-				glm::vec3 v1 = intersection.intersectedTriangle.vertices[1];
-				glm::vec3 v2 = intersection.intersectedTriangle.vertices[2];
-
-				glm::vec3 normal0 = getVertexNormal(v0, uniqueVertices, vertexNormals);
-				glm::vec3 normal1 = getVertexNormal(v1, uniqueVertices, vertexNormals);
-
-				glm::vec3 normal2 = getVertexNormal(v2, uniqueVertices, vertexNormals);
-
-				std::vector<glm::vec3> normals;
-				normals.push_back(normal0);
-				normals.push_back(normal1);
-				normals.push_back(normal2);
-				float u = intersection.barycentericValues.x;
-				float v = intersection.barycentericValues.y;
-				float w = intersection.barycentericValues.z;
-				glm::vec3 interpolatedNormal = glm::normalize(u * normal0 + v * normal1 + w * normal2);
-
-
-				bool isLit = !isInShadow(theTriModels,textureArray, intersectionPointOfSurface, lightSourcePosition);
 				Colour colour = intersection.intersectedTriangle.colour;
+				glm::vec3 intersectionPointOfSurface = intersection.intersectionPoint; //in 3d
+				//10 and 11 is left wall
+				//31 and 26 is blue box front
+				bool mirroredSurface = intersection.intersectedTriangle.triangleIndex == 10 || intersection.intersectedTriangle.triangleIndex == 11;
+				if (mirroredSurface) {
+					// printf("mirroed surface!%i \n ", colour.blue);
+					RayTriangleIntersection reflectionIntersection = getReflectedRay(intersection, rayDirection, theTriModels, textureArray);
+
+					//Update color and all relevent variables for lighting effects to reflect correctly.
+					colour = reflectionIntersection.intersectedTriangle.colour;
+					intersectionPointOfSurface = reflectionIntersection.intersectionPoint;
+					intersection.intersectedTriangle.normal = reflectionIntersection.intersectedTriangle.normal;
+				}
+
+
+
+				//Apply Phong
+				glm::vec3 interpolatedNormal = getNormalUsingPhong(intersection, uniqueVertices, vertexNormals);
+
+				// In your rendering code, before calling applyGouraud:
+				// Pass the face normal 3 times instead of looking up vertex normals
+				std::vector<glm::vec3> fakeVertexNormals = {
+					intersection.intersectedTriangle.normal,
+					intersection.intersectedTriangle.normal,
+					intersection.intersectedTriangle.normal
+				};
+
+				bool inShadow = isInShadow(theTriModels,textureArray, intersectionPointOfSurface, lightSourcePosition);
+
 				uint32_t finalColour = 0;
 
-				// finalColour = applyLightingEffects(colour, 40,  lightSourcePosition, intersectionPointOfSurface, intersection.intersectedTriangle.normal, cameraPosition, !isLit);
-				finalColour = applyLightingEffects(colour, 30,  lightSourcePosition, intersectionPointOfSurface, interpolatedNormal, cameraPosition, !isLit);
-				// finalColour = applyGouraud(25, colour, intersection.intersectedTriangle.vertices, normals, cameraPosition, lightSourcePosition, !isLit, intersection.barycentericValues );
+				//Apply Lighting or shading
+				Colour brightenedColour = applyLightingEffects(colour, 30,  lightSourcePosition, intersectionPointOfSurface, intersection.intersectedTriangle.normal, cameraPosition, inShadow);
+				// Colour brightenedColour = applyLightingEffects(colour, 30,  lightSourcePosition, intersectionPointOfSurface, interpolatedNormal, cameraPosition, inShadow);
+				finalColour = convertColourToInt(brightenedColour);
+				// finalColour = applyLightingEffects(colour, 30,  lightSourcePosition, intersectionPointOfSurface, interpolatedNormal, cameraPosition, !isLit);
+				// finalColour = applyGouraud(20, colour, intersection.intersectedTriangle.vertices,
+				// 	uniqueVertices, vertexNormals, cameraPosition,
+				// 	lightSourcePosition, inShadow, intersection.barycentericValues );
 
-
-				//Check texturing:
+				//Check texturing: (lighting on textures not implemented)
 				if (intersection.intersectedTriangle.hasTexture)
 					finalColour = intersection.textureColourAsInt;
 
