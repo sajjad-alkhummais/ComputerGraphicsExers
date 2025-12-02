@@ -93,7 +93,7 @@ Colour applyLightingEffects(Colour colour, float intensity, glm::vec3& lightSour
 	diffuseBrightness = std::min(diffuseBrightness, 1.0f);
 
     float specularBrightness = 0.0f;
-    specularBrightness = getSpecularFactor(128, lightSourcePosition, intersectionPoint, normal, cameraPosition, diffuseBrightness);
+    specularBrightness = getSpecularFactor(64, lightSourcePosition, intersectionPoint, normal, cameraPosition, diffuseBrightness);
 
     Colour brightenedColour = brightenColour(colour, diffuseBrightness, specularBrightness, isInShadow);
 	uint32_t brightenedColourAsInt = convertColourToInt(brightenedColour);
@@ -101,7 +101,7 @@ Colour applyLightingEffects(Colour colour, float intensity, glm::vec3& lightSour
 }
 
 
-uint32_t applyGouraud( float intensity,
+Colour applyGouraud( float intensity,
     Colour baseColour,
     std::array<glm::vec3, 3> triangleVertices, std::vector<glm::vec3> uniqueVertices,
     std::vector<glm::vec3> vertexNormals, glm::vec3 cameraPosition,  glm::vec3& lightSourcePosition, bool isInShadow,
@@ -129,10 +129,11 @@ uint32_t applyGouraud( float intensity,
     finalCol[0] = std::max(0.0f, std::min(255.0f, finalCol[0]));
     finalCol[1] = std::max(0.0f, std::min(255.0f, finalCol[1]));
     finalCol[2] = std::max(0.0f, std::min(255.0f, finalCol[2]));
-    uint32_t updatedColour = (255 << 24) + ((int)finalCol[0] << 16) + ((int) finalCol[1] << 8) + (int)finalCol[2];
+    return Colour(finalCol[0], finalCol[1], finalCol[2]);
+    // uint32_t updatedColour = (255 << 24) + ((int)finalCol[0] << 16) + ((int) finalCol[1] << 8) + (int)finalCol[2];
     // Temporary debug visualization
 
-    return updatedColour;
+    // return updatedColour;
 
 
 

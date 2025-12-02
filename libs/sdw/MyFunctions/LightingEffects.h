@@ -17,7 +17,7 @@ float updateBrightnessWithAOI(glm::vec3& lightSourcePosition, const glm::vec3& i
 float getSpecularFactor(int shininessFactor, glm::vec3& lightSourcePosition, const glm::vec3& intersectionPoint, glm::vec3 normal, float brightness);
 Colour brightenColour(Colour colour, float diffuseBrightness, float specularBrightness, bool isInShadow);
 Colour applyLightingEffects(Colour colour, float intensity, glm::vec3& lightSourcePosition, const glm::vec3& intersectionPoint, glm::vec3 normal, glm::vec3 cameraPosition, bool isInShadow);
-uint32_t applyGouraud( float intensity,
+Colour applyGouraud( float intensity,
     Colour baseColour,
     std::array<glm::vec3, 3> triangleVertices,
     std::vector<glm::vec3> uniqueVertices,

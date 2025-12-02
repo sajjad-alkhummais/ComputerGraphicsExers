@@ -166,13 +166,14 @@ void renderRaytracedModelWithShadows(DrawingWindow &window,
 			RayTriangleIntersection intersection = getClosestValidIntersection(cameraPosition, rayDirection, theTriModels, textureArray);
 			if (intersection.intersectionFound) {
 
+				bool modelIsTheSphere = theTriModels.size() > 40;
 
 				Colour colour = intersection.intersectedTriangle.colour;
 				glm::vec3 intersectionPointOfSurface = intersection.intersectionPoint; //in 3d
 				//10 and 11 is left wall
 				//31 and 26 is blue box front
 				bool mirroredSurface = intersection.intersectedTriangle.triangleIndex == 10 || intersection.intersectedTriangle.triangleIndex == 11;
-				if (mirroredSurface) {
+				if (mirroredSurface && !modelIsTheSphere) {
 					// printf("mirroed surface!%i \n ", colour.blue);
 					RayTriangleIntersection reflectionIntersection = getReflectedRay(intersection, rayDirection, theTriModels, textureArray);
 
@@ -198,16 +199,20 @@ void renderRaytracedModelWithShadows(DrawingWindow &window,
 				bool inShadow = isInShadow(theTriModels,textureArray, intersectionPointOfSurface, lightSourcePosition);
 
 				uint32_t finalColour = 0;
-
+				Colour brightenedColour;
 				//Apply Lighting or shading
-				Colour brightenedColour = applyLightingEffects(colour, 30,  lightSourcePosition, intersectionPointOfSurface, intersection.intersectedTriangle.normal, cameraPosition, inShadow);
-				// Colour brightenedColour = applyLightingEffects(colour, 30,  lightSourcePosition, intersectionPointOfSurface, interpolatedNormal, cameraPosition, inShadow);
-				finalColour = convertColourToInt(brightenedColour);
-				// finalColour = applyLightingEffects(colour, 30,  lightSourcePosition, intersectionPointOfSurface, interpolatedNormal, cameraPosition, !isLit);
-				// finalColour = applyGouraud(20, colour, intersection.intersectedTriangle.vertices,
-				// 	uniqueVertices, vertexNormals, cameraPosition,
-				// 	lightSourcePosition, inShadow, intersection.barycentericValues );
+				float intensity = 30;
+				if (!modelIsTheSphere) {
+					brightenedColour = applyLightingEffects(colour, intensity,  lightSourcePosition, intersectionPointOfSurface, intersection.intersectedTriangle.normal, cameraPosition, inShadow);
+				}
+				else {
+					brightenedColour = applyLightingEffects(colour, intensity,  lightSourcePosition, intersectionPointOfSurface, interpolatedNormal, cameraPosition, inShadow);
+					// brightenedColour = applyGouraud(intensity, colour, intersection.intersectedTriangle.vertices,
+					// 	uniqueVertices, vertexNormals, cameraPosition,
+					// 	lightSourcePosition, inShadow, intersection.barycentericValues );
+				}
 
+				finalColour = convertColourToInt(brightenedColour);
 				//Check texturing: (lighting on textures not implemented)
 				if (intersection.intersectedTriangle.hasTexture)
 					finalColour = intersection.textureColourAsInt;
