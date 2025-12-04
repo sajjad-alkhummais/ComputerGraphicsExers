@@ -335,7 +335,7 @@ void animateFrame(
 	std::vector<std::vector<uint32_t>> &textureArray,
 	glm::vec3 &cameraPosition,
 	glm::mat3 &cameraOrientation,
-	glm::vec3 lightSourcePosition,
+	glm::vec3 &lightSourcePosition,
 	float focalLength,
 	std::vector<glm::vec3> uniqueVerticesCornell,
 	std::vector<glm::vec3> uniqueVerticesSphere,
@@ -360,10 +360,13 @@ void animateFrame(
 	// combinedVertexNormals = calculateVertexNormals(combinedModel, uniqueVerticesCombined);
 		// window.clearPixels();
 	int shadingType = 1;
+	//Zoom in
 		if (frame <= 15 * 3) {
+
 			renderMode = 1;
 			cameraPosition.z -= 0.1;
 		}
+	//Bounce the ball
 		else if (frame <= 15 * 3.5) {
 			renderMode = 1;
 			glm::vec3 sphereLocation(0.0f, 0.05f, 0.0f);
@@ -373,15 +376,14 @@ void animateFrame(
 
 		}
 		else if (frame <= 15 * 4) {
+
 			renderMode = 2;
 			glm::vec3 sphereLocation(0.0f, -0.05f, 0.0f);
 			translateModel(sphereTris, sphereLocation);
-		untexturedCombined = combineModels(cornellBoxTris, sphereTris);
+			untexturedCombined = combineModels(cornellBoxTris, sphereTris);
 		}
 		//Orbiting
 		else if (frame <= 15 * 6) {
-			//Becuase the two models are rendered saparately, the occlusion matrix is different, so we combine the two for this frame
-			//since we are not going to need it to work el
 
 			renderMode = 2;
 
@@ -391,6 +393,7 @@ void animateFrame(
 			// renderRasterizedModel(window, combinedModel, cameraPosition, cameraOrientation, focalLength);
 			// usleep(500000);
 		}
+	//Cinematic shot
 		else if (frame <= 15 * 8) {
 			shadingType = 1;
 			pan(cameraOrientation, -1.8);
@@ -402,6 +405,7 @@ void animateFrame(
 
 
 		}
+	//Get back in original position
 		else if (frame <= 15 * 10) {
 			pan(cameraOrientation, 1.8);
 			shadingType = 2;
@@ -417,7 +421,7 @@ void animateFrame(
 			shadingType = 1;
 			lightSourcePosition.y -= 0.1;
 			lightSourcePosition.z -= 0.4;
-			lightPositions =  generateClusterOfLight(0.1, 1, lightSourcePosition);
+			lightPositions =  generateClusterOfLight(0.35, 100, lightSourcePosition);
 
 			cameraPosition.z -= 0.02;
 			cameraPosition.x += 0.02;
@@ -439,6 +443,7 @@ void animateFrame(
 			// Calculation: (10 * 45) / 30 = 15
 			// rotateAroundY(cameraPosition, -1.5);
 		}
+	else{return;}
 
 	//Script ends here
 		if (renderMode == 1) {
@@ -455,10 +460,10 @@ void animateFrame(
 			// renderRaytracedModelWithShadows(window, sphereTris, textureArray, cameraPosition, cameraOrientation, lightPositions, focalLength, uniqueVerticesSphere, vertexNormalsSphere);
 		}
 		// window.renderFrame();
-		// usleep(67 * 1000); // usleep takes microseconds (1s = 1,000,000 us)
+		usleep(67 * 1000); // usleep takes microseconds (1s = 1,000,000 us)
 
-	std::string filename = "frames/frame_" + std::to_string(frame) + ".bmp";
-	window.saveBMP(filename);
+	// std::string filename = "frames/frame_" + std::to_string(frame) + ".bmp";
+	// window.saveBMP(filename);
 
 	}
 
@@ -520,8 +525,8 @@ int main(int argc, char *argv[]) {
 	//
 	SDL_Event event;
 	int currentFrame = 1;
-	int maxFrames = 15 * 30; // 450 frames
-	bool isAnimating = true; // Toggle to pause/play
+	int maxFrames = 15 * 15; // 225 frames
+	bool isAnimating = false; // Toggle to pause/play
 	int shadingType = 1; // 1 for phong, 2 for gouraud
 	while (true) {
 		// We MUST poll for events - otherwise the window will freeze !
@@ -557,7 +562,7 @@ int main(int argc, char *argv[]) {
 			currentFrame++;
 			if (currentFrame > maxFrames) {
 				// currentFrame = 1; // Loop animation
-
+				isAnimating = false;
 			}
 		}
 		else {
@@ -567,14 +572,12 @@ int main(int argc, char *argv[]) {
 				// renderSketchedModel(window, theTrisOfSphere, cameraPosition, cameraOrientation, focalLength);
 			}
 			else if (renderMode == 2) {
-
-
 				renderRasterizedModel(window,combinedModelUntextured, cameraPosition, cameraOrientation, focalLength );
 				// renderRasterizedModel(window,theTrisOfSphere, cameraPosition, cameraOrientation, focalLength );
 			}
 			else if (renderMode == 3) {
 				std::srand(12345);
-				std::vector<glm::vec3> lightPositions = generateClusterOfLight(0.5, 64, lightSourcePosition);
+				std::vector<glm::vec3> lightPositions = generateClusterOfLight(0.4, 100, lightSourcePosition);
 				renderRaytracedModelWithShadows(window,
 					combinedModel,
 					textureArray, cameraPosition, cameraOrientation, lightPositions, focalLength,
