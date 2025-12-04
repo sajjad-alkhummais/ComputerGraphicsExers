@@ -16,6 +16,7 @@
 #include "vector"
 #include "LoadingFiles.h"
 #include <glm/glm.hpp>
+#include "Projection.h"
 
 #include "RayTriangleIntersection.h"
 RayTriangleIntersection getClosestValidIntersection(glm::vec3 cameraPosition,
@@ -36,7 +37,9 @@ void renderRaytracedModelWithShadows(DrawingWindow &window,
     std::vector<glm::vec3> lightSourcePositions,
     float focalLength,
     std::vector<glm::vec3> uniqueVertices,
-    std::vector<glm::vec3> vertexNormals);
+    std::vector<glm::vec3> vertexNormals,
+    int shadingType //1 phong, 2 gouraud.
+    );
 bool isInShadow(std::vector<ModelTriangle> &theTriModels,
     std::vector<std::vector<uint32_t>> &textureArray,
     glm::vec3 sourcePosition, glm::vec3 lightSourcePosition);

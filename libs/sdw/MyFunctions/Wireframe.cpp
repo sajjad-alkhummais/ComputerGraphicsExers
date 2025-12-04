@@ -342,7 +342,7 @@ void testDrawingATriangle(DrawingWindow &window) {
 
 
 void renderSketchedModel(DrawingWindow &window, std::vector<ModelTriangle> &theTriModels, glm::vec3 cameraPosition, glm::mat3 cameraOrientation ,float focalLength ) {
-	window.clearPixels();
+	// window.clearPixels();
 	for (ModelTriangle triIn3D : theTriModels) {
 		CanvasTriangle triIn2D = convert3DTriTo2D(triIn3D, cameraPosition, cameraOrientation, focalLength);
 		Colour col = triIn3D.colour;

@@ -16,7 +16,7 @@ glm::vec3 getVertexNormal(glm::vec3 vertex,
         }
     }
     printf("problem\n");
-    return glm::vec3(0, 1, 0); // default if not founddef
+    return glm::vec3(0, 1, 0); // default
 }
 std::vector<glm::vec3> getUniqueVertices(std::vector<ModelTriangle> triangles) {
     std::vector<glm::vec3> uniqueVertices;

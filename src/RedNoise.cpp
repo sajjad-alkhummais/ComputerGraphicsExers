@@ -22,8 +22,8 @@
 #include <cmath>
 
 #include "glm/gtx/dual_quaternion.hpp"
-#define WIDTH 320
-#define HEIGHT 240
+
+
 
 
 
@@ -75,7 +75,7 @@ void fillTriangleWithDepth(DrawingWindow &window, std::vector<std::vector<float>
 }
 void renderRasterizedModel(DrawingWindow &window, std::vector<ModelTriangle> &theTriModels, glm::vec3 cameraPosition, glm::mat3 cameraOrientation ,float focalLength ) {
 
-	window.clearPixels();
+	// window.clearPixels();
 	std::vector<std::vector<float>> zBuffer;
 	for (int y = 0; y < HEIGHT; y++ ) {
 		std::vector<float> depthRow;
@@ -96,7 +96,7 @@ void renderRasterizedModel(DrawingWindow &window, std::vector<ModelTriangle> &th
 
 }
 
-void handleEvent(SDL_Event event, DrawingWindow &window, glm::vec3 &cameraPosition, glm::mat3 &cameraOrientation, bool &orbitStatus, int &renderMode, glm::vec3 &lightSourcePosition) {
+void handleEvent(SDL_Event event, DrawingWindow &window, glm::vec3 &cameraPosition, glm::mat3 &cameraOrientation, bool &orbitStatus, int &renderMode, glm::vec3 &lightSourcePosition, bool& isAnimating) {
 
 	if (event.type == SDL_KEYDOWN) {
 		if (event.key.keysym.sym == SDLK_LEFT) cameraPosition.x -= 0.5; else if (event.key.keysym.sym == SDLK_RIGHT) cameraPosition.x += 0.5;
@@ -107,6 +107,7 @@ void handleEvent(SDL_Event event, DrawingWindow &window, glm::vec3 &cameraPositi
 		else if (event.key.keysym.sym == SDLK_7) lightSourcePosition.y += 0.5; else if (event.key.keysym.sym == SDLK_8) lightSourcePosition.y -= 0.5;
 		else if (event.key.keysym.sym == SDLK_0) lightSourcePosition.z += 0.5; else if (event.key.keysym.sym == SDLK_9) lightSourcePosition.z -= 0.5;
 
+		else if (event.key.keysym.sym == SDLK_m) isAnimating = !isAnimating;
 		else if (event.key.keysym.sym == SDLK_u) testDrawingATriangle(window);
 		else if (event.key.keysym.sym == SDLK_f) testFillingATriangle(window);
 		else if (event.key.keysym.sym == SDLK_x) rotateAroundX(cameraPosition, 10);
@@ -211,7 +212,7 @@ void generateAnimation(DrawingWindow &window, std::vector<ModelTriangle> &theTri
 //We generate random postions in range x, y, z = radius, numberOfLights times at the center
 std::vector<glm::vec3> generateClusterOfLight(float radius, int numberOflights, glm::vec3 center) {
 	std::vector<glm::vec3> lightPositions;
-	for (int i = 0; i <= numberOflights; i++) {
+	for (int i = 0; i < numberOflights; i++) {
 		glm::vec3 randomOffset = glm::ballRand(radius);
 		glm::vec3 lightPosition = center + randomOffset;
 		lightPositions.push_back(lightPosition);
@@ -219,13 +220,256 @@ std::vector<glm::vec3> generateClusterOfLight(float radius, int numberOflights, 
 
 	return lightPositions;
 }
+
+void translateModel(std::vector<ModelTriangle> &triangles, glm::vec3 translation) {
+	for (ModelTriangle &tri : triangles) {
+		for (int i = 0; i < 3; i++) {
+			tri.vertices[i] += translation;
+		}
+	}
+}
+
+void videoComposer(
+	DrawingWindow &window,
+	std::vector<ModelTriangle> &cornellBoxTris,
+	std::vector<ModelTriangle> &sphereTris,
+	std::vector<std::vector<uint32_t>> &textureArray,
+	glm::vec3 &cameraPosition,
+	glm::mat3 &cameraOrientation,
+	glm::vec3 lightSourcePosition,
+	float focalLength,
+	std::vector<glm::vec3> uniqueVerticesCornell,
+	std::vector<glm::vec3> uniqueVerticesSphere,
+	std::vector<glm::vec3> vertexNormalsCornell,
+	std::vector<glm::vec3> vertexNormalsSphere
+	) {
+
+	std::srand(12345);
+	std::vector<glm::vec3> lightPositions = generateClusterOfLight(0.1, 1, lightSourcePosition);
+
+	int numOfFrames = 15 * 30; //15 frames per second for 30 seconds
+	int renderMode = 2;
+
+
+	for (int frame = 1; frame <= numOfFrames; frame++) {
+		window.clearPixels();
+
+		if (frame <= 15 * 3) {
+			renderMode = 1;
+			cameraPosition.z -= 0.1;
+		}
+		else if (frame <= 15 * 4) {
+			glm::vec3 sphereLocation(0.0f, 0.05f, 0.0f);
+			translateModel(sphereTris, sphereLocation);
+		}
+		else if (frame <= 15 * 5) {
+			renderMode = 2;
+			glm::vec3 sphereLocation(0.0f, -0.05f, 0.0f);
+			translateModel(sphereTris, sphereLocation);
+
+		}
+		//Orbiting
+		else if (frame <= 15 * 7) {
+			//Becuase the two models are rendered saparately, the occlusion matrix is different, so we combine the two for this frame
+			//since we are not going to need it to work el
+			std::vector<ModelTriangle> combinedScene;
+
+			// 2. Add the Cornell Box (walls)
+			combinedScene.insert(combinedScene.end(), cornellBoxTris.begin(), cornellBoxTris.end());
+
+			// 3. Add the Sphere (your animated/translated version)
+			combinedScene.insert(combinedScene.end(), sphereTris.begin(), sphereTris.end());
+
+			glm::vec3 center(0,0,0);
+			rotateAroundY(cameraPosition, 180/15 );
+			lookAt(center, cameraOrientation, cameraPosition);
+			renderMode = 0;
+			renderRasterizedModel(window, combinedScene, cameraPosition, cameraOrientation, focalLength);
+			// usleep(500000);
+		}
+		else if (frame <= 15 * 10) {
+
+		}
+		if (renderMode == 1) {
+			renderSketchedModel(window, cornellBoxTris, cameraPosition, cameraOrientation, focalLength);
+			// renderSketchedModel(window, sphereTris, cameraPosition, cameraOrientation, focalLength);
+		}
+		else if (renderMode == 2) {
+			renderRasterizedModel(window, cornellBoxTris, cameraPosition, cameraOrientation, focalLength);
+			// renderRasterizedModel(window, sphereTris, cameraPosition, cameraOrientation, focalLength);
+		}
+		else if (renderMode == 3) {
+			// renderRaytracedModelWithShadows(window, cornellBoxTris, textureArray, cameraPosition, cameraOrientation, lightPositions, focalLength, uniqueVerticesCornell, vertexNormalsCornell);
+			// renderRaytracedModelWithShadows(window, sphereTris, textureArray, cameraPosition, cameraOrientation, lightPositions, focalLength, uniqueVerticesSphere, vertexNormalsSphere);
+		}
+		window.renderFrame();
+		usleep(67 * 1000); // usleep takes microseconds (1s = 1,000,000 us)
+
+
+	}
+
+
+
+
+}
+
+std::vector<ModelTriangle> combineModels(std::vector<ModelTriangle> &baseModel,std::vector<ModelTriangle> &modelToAdd) {
+	std::vector<ModelTriangle> combinedModel = baseModel;
+
+	int triangleIndexUpdated = baseModel.size() - 1;
+	for (ModelTriangle tri : modelToAdd) {
+		triangleIndexUpdated++;
+		tri.triangleIndex = triangleIndexUpdated;
+		combinedModel.push_back(tri);
+	}
+
+	return combinedModel;
+}
+void animateFrame(
+	int frame,
+	DrawingWindow &window,
+	std::vector<ModelTriangle> &cornellBoxTris,
+	std::vector<ModelTriangle> &sphereTris,
+	std::vector<ModelTriangle> &combinedModel,
+	std::vector<ModelTriangle> &untexturedCombined,
+	std::vector<std::vector<uint32_t>> &textureArray,
+	glm::vec3 &cameraPosition,
+	glm::mat3 &cameraOrientation,
+	glm::vec3 lightSourcePosition,
+	float focalLength,
+	std::vector<glm::vec3> uniqueVerticesCornell,
+	std::vector<glm::vec3> uniqueVerticesSphere,
+	std::vector<glm::vec3> uniqueVerticesCombined,
+	std::vector<glm::vec3> vertexNormalsCornell,
+	std::vector<glm::vec3> vertexNormalsSphere,
+	std::vector<glm::vec3> combinedVertexNormals
+	) {
+
+	window.clearPixels();
+	std::srand(12345);
+	std::vector<glm::vec3> lightPositions = generateClusterOfLight(0.1, 1, lightSourcePosition);
+
+	int renderMode = 2;
+	uniqueVerticesSphere = getUniqueVertices(sphereTris);
+	std::vector<glm::vec3> sphereVertexNormals = calculateVertexNormals(sphereTris, uniqueVerticesSphere);
+	untexturedCombined = combineModels(cornellBoxTris, sphereTris);
+
+	// //Raytracer updates
+	// combinedModel = combineModels(cornellBoxTris, sphereTris);
+	// uniqueVerticesCombined = getUniqueVertices(combinedModel);
+	// combinedVertexNormals = calculateVertexNormals(combinedModel, uniqueVerticesCombined);
+		// window.clearPixels();
+	int shadingType = 1;
+		if (frame <= 15 * 3) {
+			renderMode = 1;
+			cameraPosition.z -= 0.1;
+		}
+		else if (frame <= 15 * 3.5) {
+			renderMode = 1;
+			glm::vec3 sphereLocation(0.0f, 0.05f, 0.0f);
+			translateModel(sphereTris, sphereLocation);
+
+			untexturedCombined = combineModels(cornellBoxTris, sphereTris);
+
+		}
+		else if (frame <= 15 * 4) {
+			renderMode = 2;
+			glm::vec3 sphereLocation(0.0f, -0.05f, 0.0f);
+			translateModel(sphereTris, sphereLocation);
+		untexturedCombined = combineModels(cornellBoxTris, sphereTris);
+		}
+		//Orbiting
+		else if (frame <= 15 * 6) {
+			//Becuase the two models are rendered saparately, the occlusion matrix is different, so we combine the two for this frame
+			//since we are not going to need it to work el
+
+			renderMode = 2;
+
+			glm::vec3 center(0,0,0);
+			rotateAroundY(cameraPosition, 180.0f/15 );
+			lookAt(center, cameraOrientation, cameraPosition);
+			// renderRasterizedModel(window, combinedModel, cameraPosition, cameraOrientation, focalLength);
+			// usleep(500000);
+		}
+		else if (frame <= 15 * 8) {
+			shadingType = 1;
+			pan(cameraOrientation, -1.8);
+			renderMode = 3;
+			cameraPosition.z -= 0.11;
+			cameraPosition.x -= 0.025;
+			cameraPosition.y += 0.02;
+			tilt(cameraOrientation, -0.5);
+
+
+		}
+		else if (frame <= 15 * 10) {
+			pan(cameraOrientation, 1.8);
+			shadingType = 2;
+			renderMode = 3;
+			cameraPosition.z += 0.11;
+			cameraPosition.x += 0.025;
+			cameraPosition.y -= 0.02;
+			tilt(cameraOrientation, +0.5);
+		}
+		else if ( frame <= 15 * 13) {
+
+			renderMode = 3;
+			shadingType = 1;
+			lightSourcePosition.y -= 0.1;
+			lightSourcePosition.z -= 0.4;
+			lightPositions =  generateClusterOfLight(0.1, 1, lightSourcePosition);
+
+			cameraPosition.z -= 0.02;
+			cameraPosition.x += 0.02;
+			cameraPosition.y += 0.02;
+			pan(cameraOrientation, 0.5);
+			tilt(cameraOrientation, -0.3);
+			// rotateAroundY(cameraPosition, 1);
+		}
+		else if (frame <= 15 * 15) {
+			renderMode = 3;
+			// Camera moves Back to origin (Original was 0.1, 0.025, 0.025)
+			// Calculation: (0.1 * 45) / 30 = 0.15
+			cameraPosition.z += 0.04;
+			cameraPosition.x -= 0.02;
+			cameraPosition.y -= 0.02;
+			pan(cameraOrientation, -0.5);
+			tilt(cameraOrientation, +0.3);
+			// Rotate Back (Original was 10)
+			// Calculation: (10 * 45) / 30 = 15
+			// rotateAroundY(cameraPosition, -1.5);
+		}
+
+	//Script ends here
+		if (renderMode == 1) {
+			renderSketchedModel(window, untexturedCombined, cameraPosition, cameraOrientation, focalLength);
+			// renderSketchedModel(window, sphereTris, cameraPosition, cameraOrientation, focalLength);
+		}
+		else if (renderMode == 2) {
+			renderRasterizedModel(window, untexturedCombined, cameraPosition, cameraOrientation, focalLength);
+			// renderRasterizedModel(window, sphereTris, cameraPosition, cameraOrientation, focalLength);
+		}
+		else if (renderMode == 3) {
+			renderRaytracedModelWithShadows(window, combinedModel, textureArray, cameraPosition,
+				cameraOrientation, lightPositions, focalLength, uniqueVerticesCombined, combinedVertexNormals, shadingType);
+			// renderRaytracedModelWithShadows(window, sphereTris, textureArray, cameraPosition, cameraOrientation, lightPositions, focalLength, uniqueVerticesSphere, vertexNormalsSphere);
+		}
+		// window.renderFrame();
+		// usleep(67 * 1000); // usleep takes microseconds (1s = 1,000,000 us)
+
+	std::string filename = "frames/frame_" + std::to_string(frame) + ".bmp";
+	window.saveBMP(filename);
+
+	}
+
+
 int main(int argc, char *argv[]) {
 
 //	 test_interpolateSingleFloats();
 //	 test_interpolateThreeElementValues();
 
-	int renderMode = 0;
-	glm::vec3 cameraPosition = glm::vec3(0.0, 0.0,4.0);
+	int renderMode = 2;
+	glm::vec3 cameraPosition = glm::vec3(0.0, 0.0,9.0);
 	//This will be used as the center for the cluster of lights as well.
 	glm::vec3 lightSourcePosition = glm::vec3(0, 2 * 0.35, 0.35*3);
 
@@ -241,16 +485,24 @@ int main(int argc, char *argv[]) {
 	DrawingWindow window = DrawingWindow(WIDTH, HEIGHT, false);
 
 	//Load models and textures
+	std::vector<ModelTriangle> texturedCornellTris = loadModel(scaling, "textured-cornell-box.obj", "textured-cornell-box.mtl");
 	std::vector<ModelTriangle> theTrisOfCornellBox = loadModel(scaling, "cornell-box.obj", "cornell-box.mtl");
 	std::vector<ModelTriangle> theTrisOfSphere = loadModel(0.35, "sphere_updated.obj", "cornell-box.mtl");
 
+	glm::vec3 sphereLocation(0.0f, 0.15f, 0.4f); // Example: Move down to floor, keep centered in X/Z
+	translateModel(theTrisOfSphere, sphereLocation);
+
+	std::vector<ModelTriangle> combinedModel = combineModels(texturedCornellTris, theTrisOfSphere);
+	std::vector<ModelTriangle> combinedModelUntextured = combineModels(theTrisOfCornellBox, theTrisOfSphere);
+
 	std::vector<glm::vec3> uniqueVerticesOfCornellBox = getUniqueVertices(theTrisOfCornellBox);
 	std::vector<glm::vec3> uniqueVerticesOfSphere = getUniqueVertices(theTrisOfSphere);
+	std::vector<glm::vec3> uniqueVerticesOfCombined = getUniqueVertices(combinedModel);
 
 	std::vector<glm::vec3> cornellBoxVertexNormals = calculateVertexNormals(theTrisOfSphere, uniqueVerticesOfSphere);
 	std::vector<glm::vec3> sphereVertexNormals = calculateVertexNormals(theTrisOfSphere, uniqueVerticesOfSphere);
+	std::vector<glm::vec3> combinedVertexNormals = calculateVertexNormals(combinedModel, uniqueVerticesOfCombined);
 
-	std::vector<ModelTriangle> theTriModels = loadModel(scaling, "textured-cornell-box.obj", "textured-cornell-box.mtl");
 
 	TextureMap textureFile = TextureMap("ModelsFiles/texture.ppm");
 	std::vector<std::vector<uint32_t>> textureArray = createTextureArray(textureFile);
@@ -259,11 +511,21 @@ int main(int argc, char *argv[]) {
 	//A variable to keep track of the orbiting status of the function 'orbit()';
 	bool orbitStatus = false;
 	// generateAnimation(window, theTriModels, cameraPosition, cameraOrientation, lightSourcePosition, focalLength);
+	// videoComposer(window, theTrisOfCornellBox, theTrisOfSphere, textureArray, cameraPosition, cameraOrientation,lightSourcePosition,
+	// 	focalLength,
+	// 	uniqueVerticesOfCornellBox,
+	// 	uniqueVerticesOfSphere,
+	// 	cornellBoxVertexNormals,
+	// 	sphereVertexNormals);
+	//
 	SDL_Event event;
-
+	int currentFrame = 1;
+	int maxFrames = 15 * 30; // 450 frames
+	bool isAnimating = true; // Toggle to pause/play
+	int shadingType = 1; // 1 for phong, 2 for gouraud
 	while (true) {
 		// We MUST poll for events - otherwise the window will freeze !
-		if (window.pollForInputEvents(event)) handleEvent(event, window, cameraPosition, cameraOrientation, orbitStatus, renderMode, lightSourcePosition);
+		if (window.pollForInputEvents(event)) handleEvent(event, window, cameraPosition, cameraOrientation, orbitStatus, renderMode, lightSourcePosition, isAnimating);
 		//draw(window);
 		//drawingGreyScale(window);
 		//drawing2DColourInterpolation(window);
@@ -278,20 +540,54 @@ int main(int argc, char *argv[]) {
 		// test_loadUntexturedModel();
 		//testGetClosestValidIntersection();
 
-		orbit(window, cameraPosition, cameraOrientation, orbitStatus);
-		if (renderMode == 1) renderSketchedModel(window, theTrisOfCornellBox, cameraPosition, cameraOrientation, focalLength);
-		else if (renderMode == 2) renderRasterizedModel(window,theTrisOfCornellBox, cameraPosition, cameraOrientation, focalLength );
-		else if (renderMode == 3) {
-			std::srand(12345);
-			std::vector<glm::vec3> lightPositions = generateClusterOfLight(0.2, 64, lightSourcePosition);
-		 	renderRaytracedModelWithShadows(window, theTriModels, textureArray, cameraPosition, cameraOrientation, lightPositions, focalLength, uniqueVerticesOfCornellBox, cornellBoxVertexNormals);
-		 	// renderRaytracedModelWithShadows(window, theTrisOfSphere, textureArray, cameraPosition, cameraOrientation, lightPositions, focalLength, uniqueVerticesOfSphere, sphereVertexNormals);
-		 	// renderRaytracedModel(window, theTriModels, cameraPosition, cameraOrientation, focalLength);
-		 //	renderMode = 0;
+		if (isAnimating) {
 
-		 }
-		window.renderFrame();
+			animateFrame(currentFrame, window, theTrisOfCornellBox, theTrisOfSphere,combinedModel, combinedModelUntextured,
+				textureArray,
+				cameraPosition, cameraOrientation,lightSourcePosition,
+				focalLength,
+				uniqueVerticesOfCornellBox,
+				uniqueVerticesOfSphere,
+				uniqueVerticesOfCombined,
+				cornellBoxVertexNormals,
+				sphereVertexNormals,
+				combinedVertexNormals);
 
 
+			currentFrame++;
+			if (currentFrame > maxFrames) {
+				// currentFrame = 1; // Loop animation
+
+			}
+		}
+		else {
+			orbit(window, cameraPosition, cameraOrientation, orbitStatus);
+			if (renderMode == 1) {
+				renderSketchedModel(window, combinedModelUntextured, cameraPosition, cameraOrientation, focalLength);
+				// renderSketchedModel(window, theTrisOfSphere, cameraPosition, cameraOrientation, focalLength);
+			}
+			else if (renderMode == 2) {
+
+
+				renderRasterizedModel(window,combinedModelUntextured, cameraPosition, cameraOrientation, focalLength );
+				// renderRasterizedModel(window,theTrisOfSphere, cameraPosition, cameraOrientation, focalLength );
+			}
+			else if (renderMode == 3) {
+				std::srand(12345);
+				std::vector<glm::vec3> lightPositions = generateClusterOfLight(0.5, 64, lightSourcePosition);
+				renderRaytracedModelWithShadows(window,
+					combinedModel,
+					textureArray, cameraPosition, cameraOrientation, lightPositions, focalLength,
+					uniqueVerticesOfCombined, combinedVertexNormals, shadingType);
+				// renderRaytracedModelWithShadows(window, theTrisOfSphere, textureArray, cameraPosition, cameraOrientation, lightPositions, focalLength, uniqueVerticesOfSphere, sphereVertexNormals);
+				// renderRaytracedModel(window, theTriModels, cameraPosition, cameraOrientation, focalLength);
+				//	renderMode = 0;
+
+			}
+		}
+
+
+
+			window.renderFrame();
 	}
 }

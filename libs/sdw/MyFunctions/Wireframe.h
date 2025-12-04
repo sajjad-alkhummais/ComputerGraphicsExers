@@ -6,8 +6,7 @@
 #define REDNOISE_WIREFRAME_H
 
 #endif //REDNOISE_WIREFRAME_H
-#define WIDTH 320
-#define HEIGHT 240
+
 
 #include "CanvasPoint.h"
 #include "MyFunctions/Projection.h"
@@ -17,6 +16,7 @@
 #include "CanvasTriangle.h"
 #include "Utils.h"
 #include "glm/glm.hpp"
+#include "Projection.h"
 void drawingALine(DrawingWindow &window, CanvasPoint start, CanvasPoint end, Colour clr);
 void testDrawingALine(DrawingWindow &window);
 std::vector<float> interpolateSingleFloats(float from, float to, int numOfValues);

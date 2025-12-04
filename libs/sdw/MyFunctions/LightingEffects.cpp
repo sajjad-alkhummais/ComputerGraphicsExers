@@ -12,9 +12,8 @@ Colour brightenColour(Colour colour, float diffuseBrightness, float specularBrig
         diffuseBrightness = 0.1f;  // Ambient thresh
         specularBrightness = 0.0f;
     } else {
-        diffuseBrightness = std::max(0.2f, diffuseBrightness);  //Ambient minimum
+        diffuseBrightness = std::max(0.1f, diffuseBrightness);  //Ambient minimum
     }
-
     float litRed = float(colour.red) * diffuseBrightness;
     float litBlue =  float(colour.blue )* diffuseBrightness;
     float litGreen =  float(colour.green )* diffuseBrightness;
@@ -93,7 +92,7 @@ Colour applyLightingEffects(Colour colour, float intensity, glm::vec3& lightSour
 	diffuseBrightness = std::min(diffuseBrightness, 1.0f);
 
     float specularBrightness = 0.0f;
-    specularBrightness = getSpecularFactor(64, lightSourcePosition, intersectionPoint, normal, cameraPosition, diffuseBrightness);
+    specularBrightness = getSpecularFactor(128, lightSourcePosition, intersectionPoint, normal, cameraPosition, diffuseBrightness);
 
     Colour brightenedColour = brightenColour(colour, diffuseBrightness, specularBrightness, isInShadow);
 	uint32_t brightenedColourAsInt = convertColourToInt(brightenedColour);

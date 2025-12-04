@@ -12,8 +12,8 @@
 #include "DrawingWindow.h"
 #include "ModelTriangle.h"
 #include "LoadingFiles.h"
-#define WIDTH 320
-#define HEIGHT 240
+#define WIDTH 640
+#define HEIGHT 480
 
 
 CanvasPoint projectVertexOntoCanvasPoint(glm::vec3 cameraPosition, float focalLength, glm::vec3 vertexPosition);
